@@ -360,6 +360,18 @@ function UI:RefreshBars()
         table.sort(shamanList, function(a, b) return a.name > b.name end)
     elseif order == "EMAPosition" then
         table.sort(shamanList, function(a, b) return a.position < b.position end)
+    elseif order == "RoleAsc" then
+        local roleWeights = { ["TANK"] = 1, ["HEALER"] = 2, ["DAMAGER"] = 3, ["NONE"] = 4 }
+        table.sort(shamanList, function(a, b)
+            local unitA = Ambiguate(a.name, "none")
+            local unitB = Ambiguate(b.name, "none")
+            local roleA = UnitGroupRolesAssigned(unitA) or "NONE"
+            local roleB = UnitGroupRolesAssigned(unitB) or "NONE"
+            if roleA ~= roleB then
+                return (roleWeights[roleA] or 99) < (roleWeights[roleB] or 99)
+            end
+            return a.name < b.name
+        end)
     end
 
     for name, bar in pairs(self.teamBars) do bar:Hide() end
