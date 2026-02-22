@@ -463,7 +463,9 @@ function UI:UpdateMacros()
     local myBar = self.teamBars[myName]
     if myBar then
         if myBar.seqBtn and #names > 0 then
-            local macro = "/castsequence reset=10/combat " .. table.concat(names, ", ")
+            local reset = EMA_Totems.db.useSpamMacro and "3" or "10/combat"
+            local suffix = EMA_Totems.db.useSpamMacro and ", null" or ""
+            local macro = string.format("/castsequence reset=%s %s%s", reset, table.concat(names, ", "), suffix)
             myBar.seqBtn:SetAttribute("type", "macro")
             myBar.seqBtn:SetAttribute("macrotext", macro)
         end

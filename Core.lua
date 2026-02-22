@@ -17,13 +17,12 @@ local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
 -- EMA metadata
 EMA_Totems.parentDisplayName = "Class"
 EMA_Totems.moduleDisplayName = "Totems"
--- Using circular gear icon from EMA
 EMA_Totems.moduleIcon = "Interface\\Addons\\EMA\\Media\\SettingsIcon.tga"
 EMA_Totems.moduleOrder = 10
 
 -- EMA key bindings
-_G["BINDING_HEADER_EMATOTEMS"] = "EMA Totems"
-_G["BINDING_NAME_CLICK EMATotemsSequenceButton:LeftButton"] = "EMA: Cast Totem Sequence"
+_G["BINDING_HEADER_EMATOTEMS"] = "Totems"
+_G["BINDING_NAME_EMATOTEMSSEQUENCE"] = "EMA: Cast Totem Sequence"
 
 -- EMA integration mixins
 local EMAModule = LibStub("Module-1.0")
@@ -73,6 +72,7 @@ EMA_Totems.settings = {
     profile = {
         showBars = true,
         onlyTimers = false,
+        useSpamMacro = false,
         barScale = 1.0,
         barAlpha = 1.0,
         lockBars = false,
@@ -152,10 +152,13 @@ end
 function EMA_Totems:UPDATE_BINDINGS()
     if InCombatLockdown() then return end
     ClearOverrideBindings(self.keyBindingFrame)
-    local key = self.db.sequenceKeybind
-    if key and key ~= "" then
-        SetOverrideBindingClick(self.keyBindingFrame, false, key, "EMATotemsSequenceButton")
+    local directKey = self.db.sequenceKeybind
+    if directKey and directKey ~= "" then
+        SetOverrideBindingClick(self.keyBindingFrame, false, directKey, "EMATotemsSequenceButton")
     end
+    local nativeKey1, nativeKey2 = GetBindingKey("EMATOTEMSSEQUENCE")
+    if nativeKey1 then SetOverrideBindingClick(self.keyBindingFrame, false, nativeKey1, "EMATotemsSequenceButton") end
+    if nativeKey2 then SetOverrideBindingClick(self.keyBindingFrame, false, nativeKey2, "EMATotemsSequenceButton") end
 end
 
 function EMA_Totems:DoInitialReport()
@@ -245,6 +248,7 @@ function EMA_Totems:EMAOnSettingsReceived(characterName, settings)
     if characterName ~= self.characterName then
         self.db.showBars = settings.showBars
         self.db.onlyTimers = settings.onlyTimers
+        self.db.useSpamMacro = settings.useSpamMacro
         self.db.barScale = settings.barScale
         self.db.barAlpha = settings.barAlpha
         self.db.lockBars = settings.lockBars
@@ -324,9 +328,7 @@ function EMA_Totems:SettingsCreate()
     self.settingsControlClass = {}
     local EMAHelperSettings = LibStub:GetLibrary("EMAHelperSettings-1.0")
     
-    -- Root Class Parent Registration
-    EMAHelperSettings:CreateSettings(self.settingsControlClass, "Class", "Class", function() end, "Interface\\Addons\\EMA\\Media\\TeamCore.tga", 5)
-    
+    EMAHelperSettings:CreateSettings(self.settingsControlClass, "Class", "Class", function() end, "Interface\\AddOns\\EMA\\Media\\TeamCore.tga", 5)
     EMAHelperSettings:CreateSettings(self.settingsControl, "Totems", "Class", function() self:PushSettingsToTeam() end, "Interface\\Addons\\EMA\\Media\\SettingsIcon.tga", 10)
     
     local top, left = EMAHelperSettings:TopOfSettings(), EMAHelperSettings:LeftOfSettings()
@@ -341,6 +343,8 @@ function EMA_Totems:SettingsCreate()
     self.settingsControl.checkBoxShowBars = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Show Totem Bars", function(w, e, v) self.db.showBars = v; ns.UI:RefreshBars() end)
     movingTop = movingTop - checkBoxHeight
     self.settingsControl.checkBoxOnlyTimers = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Only Timers Mode (Passive)", function(w, e, v) self.db.onlyTimers = v; self:SettingsRefresh(); ns.UI:RefreshBars() end)
+    movingTop = movingTop - checkBoxHeight
+    self.settingsControl.checkBoxSpamMacro = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Use Spam-safe Sequence (,null)", function(w, e, v) self.db.useSpamMacro = v; ns.UI:UpdateMacros() end)
     movingTop = movingTop - checkBoxHeight
     self.settingsControl.checkBoxLockBars = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Lock Bars (Alt-Click to move)", function(w, e, v) self.db.lockBars = v end)
     movingTop = movingTop - checkBoxHeight
@@ -357,58 +361,58 @@ function EMA_Totems:SettingsCreate()
     self.settingsControl.dropdownOrder = EMAHelperSettings:CreateDropdown(self.settingsControl, headingWidth, left, movingTop, "Bar Order")
     self.settingsControl.dropdownOrder:SetList({["NameAsc"] = "Name (Asc)", ["NameDesc"] = "Name (Desc)", ["EMAPosition"] = "EMA Team Order"})
     self.settingsControl.dropdownOrder:SetCallback("OnValueChanged", function(w, e, v) self.db.barOrder = v; ns.UI:RefreshBars() end)
-    movingTop = movingTop - dropdownHeight - verticalSpacing
-    self.settingsControl.buttonRefreshTeam = EMAHelperSettings:CreateButton(self.settingsControl, headingWidth, left, movingTop, "Refresh Team Members", function() ns.UI:RefreshBars() end)
-    movingTop = movingTop - 30
+    movingY = movingTop - dropdownHeight - verticalSpacing
+    self.settingsControl.buttonRefreshTeam = EMAHelperSettings:CreateButton(self.settingsControl, headingWidth, left, movingY, "Refresh Team Members", function() ns.UI:RefreshBars() end)
+    movingY = movingY - 30
 
-    EMAHelperSettings:CreateHeading(self.settingsControl, "Appearance & Layout", movingTop, false)
-    movingTop = movingTop - headingHeight
-    self.settingsControl.dropdownBorder = EMAHelperSettings:CreateMediaBorder(self.settingsControl, headingWidth, left, movingTop, "Border Style")
+    EMAHelperSettings:CreateHeading(self.settingsControl, "Appearance & Layout", movingY, false)
+    movingY = movingY - headingHeight
+    self.settingsControl.dropdownBorder = EMAHelperSettings:CreateMediaBorder(self.settingsControl, headingWidth, left, movingY, "Border Style")
     self.settingsControl.dropdownBorder:SetCallback("OnValueChanged", function(w, e, v) self.db.borderStyle = v; ns.UI:RefreshBars() end)
-    movingTop = movingTop - 80
-    self.settingsControl.dropdownBackground = EMAHelperSettings:CreateMediaBackground(self.settingsControl, headingWidth, left, movingTop, "Background Style")
+    movingY = movingY - 110
+    self.settingsControl.dropdownBackground = EMAHelperSettings:CreateMediaBackground(self.settingsControl, headingWidth, left, movingY, "Background Style")
     self.settingsControl.dropdownBackground:SetCallback("OnValueChanged", function(w, e, v) self.db.backgroundStyle = v; ns.UI:RefreshBars() end)
-    movingTop = movingTop - 80
-    self.settingsControl.dropdownFont = EMAHelperSettings:CreateMediaFont(self.settingsControl, headingWidth, left, movingTop, "Font Style")
+    movingY = movingY - 110
+    self.settingsControl.dropdownFont = EMAHelperSettings:CreateMediaFont(self.settingsControl, headingWidth, left, movingY, "Font Style")
     self.settingsControl.dropdownFont:SetCallback("OnValueChanged", function(w, e, v) self.db.fontStyle = v; ns.UI:RefreshBars() end)
-    movingTop = movingTop - 80
-    self.settingsControl.sliderFontSize = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Font Size")
+    movingY = movingY - 110
+    self.settingsControl.sliderFontSize = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingY, "Font Size")
     self.settingsControl.sliderFontSize:SetSliderValues(6, 24, 1)
     self.settingsControl.sliderFontSize:SetCallback("OnValueChanged", function(w, e, v) self.db.fontSize = tonumber(v); ns.UI:RefreshBars() end)
-    movingTop = movingTop - sliderHeight
-    self.settingsControl.sliderIconSize = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Icon Size")
+    movingY = movingY - sliderHeight
+    self.settingsControl.sliderIconSize = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingY, "Icon Size")
     self.settingsControl.sliderIconSize:SetSliderValues(16, 64, 1)
     self.settingsControl.sliderIconSize:SetCallback("OnValueChanged", function(w, e, v) self.db.iconSize = tonumber(v); ns.UI:RefreshBars() end)
-    movingTop = movingTop - sliderHeight
-    self.settingsControl.sliderIconMargin = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Icon Spacing")
+    movingY = movingY - sliderHeight
+    self.settingsControl.sliderIconMargin = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingY, "Icon Spacing")
     self.settingsControl.sliderIconMargin:SetSliderValues(0, 20, 1)
     self.settingsControl.sliderIconMargin:SetCallback("OnValueChanged", function(w, e, v) self.db.iconMargin = tonumber(v); ns.UI:RefreshBars() end)
-    movingTop = movingTop - sliderHeight
-    self.settingsControl.sliderBarMargin = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Bar Spacing")
+    movingY = movingY - sliderHeight
+    self.settingsControl.sliderBarMargin = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingY, "Bar Spacing")
     self.settingsControl.sliderBarMargin:SetSliderValues(0, 50, 1)
     self.settingsControl.sliderBarMargin:SetCallback("OnValueChanged", function(w, e, v) self.db.barMargin = tonumber(v); ns.UI:RefreshBars() end)
-    movingTop = movingTop - sliderHeight
-    self.settingsControl.checkBoxShowTimers = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Show Timer Text (Disable if using OmniCC/ElvUI)", function(w, e, v) 
+    movingY = movingY - sliderHeight
+    self.settingsControl.checkBoxShowTimers = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingY, "Show Timer Text (Disable if using OmniCC/ElvUI)", function(w, e, v) 
         self.db.showTimers = v
         self:SettingsRefresh()
         ns.UI:RefreshBars() 
     end)
-    movingTop = movingTop - checkBoxHeight
-    self.settingsControl.sliderTimerFontSize = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Timer Font Size")
+    movingY = movingY - checkBoxHeight
+    self.settingsControl.sliderTimerFontSize = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingY, "Timer Font Size")
     self.settingsControl.sliderTimerFontSize:SetSliderValues(6, 32, 1)
     self.settingsControl.sliderTimerFontSize:SetCallback("OnValueChanged", function(w, e, v) self.db.timerFontSize = tonumber(v); ns.UI:RefreshBars() end)
-    movingTop = movingTop - sliderHeight
-    self.settingsControl.colorTimer = EMAHelperSettings:CreateColourPicker(self.settingsControl, headingWidth, left, movingTop, "Timer Color")
+    movingY = movingY - sliderHeight
+    self.settingsControl.colorTimer = EMAHelperSettings:CreateColourPicker(self.settingsControl, headingWidth, left, movingY, "Timer Color")
     self.settingsControl.colorTimer:SetCallback("OnValueChanged", function(w, e, r, g, b, a) self.db.timerColorR, self.db.timerColorG, self.db.timerColorB = r, g, b; ns.UI:RefreshBars() end)
-    movingTop = movingTop - 30
-    EMAHelperSettings:CreateHeading(self.settingsControl, "Colors", movingTop, false)
-    movingTop = movingTop - headingHeight
-    self.settingsControl.colorBackground = EMAHelperSettings:CreateColourPicker(self.settingsControl, headingWidth, left, movingTop, "Background Color")
+    movingY = movingY - 30
+    EMAHelperSettings:CreateHeading(self.settingsControl, "Colors", movingY, false)
+    movingY = movingY - headingHeight
+    self.settingsControl.colorBackground = EMAHelperSettings:CreateColourPicker(self.settingsControl, headingWidth, left, movingY, "Background Color")
     self.settingsControl.colorBackground:SetCallback("OnValueChanged", function(w, e, r, g, b, a) self.db.frameBackgroundColourR, self.db.frameBackgroundColourG, self.db.frameBackgroundColourB, self.db.frameBackgroundColourA = r, g, b, a; ns.UI:RefreshBars() end)
-    movingTop = movingTop - 30
-    self.settingsControl.colorBorder = EMAHelperSettings:CreateColourPicker(self.settingsControl, headingWidth, left, movingTop, "Border Color")
+    movingY = movingY - 30
+    self.settingsControl.colorBorder = EMAHelperSettings:CreateColourPicker(self.settingsControl, headingWidth, left, movingY, "Border Color")
     self.settingsControl.colorBorder:SetCallback("OnValueChanged", function(w, e, r, g, b, a) self.db.frameBorderColourR, self.db.frameBorderColourG, self.db.frameBorderColourB, self.db.frameBorderColourA = r, g, b, a; ns.UI:RefreshBars() end)
-    movingTop = movingTop - 30
+    movingTop = movingY - 30
 
     EMAHelperSettings:CreateHeading(self.settingsControl, "Totem Type Sequence", movingTop, false)
     movingTop = movingTop - headingHeight
@@ -492,7 +496,7 @@ function EMA_Totems:SettingsSequenceListScrollRefresh()
 end
 
 function EMA_Totems:SettingsSequenceListRowClick(rowNumber, columnNumber)
-    if self.db.onlyTimers then return end -- Locked in Only Timers mode
+    if self.db.onlyTimers then return end
     local shamans = {}
     for index, characterName in EMAApi.TeamListOrdered() do
         local class, _ = EMAApi.GetClass(characterName)
@@ -516,6 +520,8 @@ function EMA_Totems:SettingsRefresh()
         
         self.settingsControl.checkBoxShowBars:SetValue(self.db.showBars)
         self.settingsControl.checkBoxOnlyTimers:SetValue(onlyTimers)
+        self.settingsControl.checkBoxSpamMacro:SetValue(self.db.useSpamMacro)
+        self.settingsControl.checkBoxSpamMacro:SetDisabled(onlyTimers)
         self.settingsControl.checkBoxLockBars:SetValue(self.db.lockBars)
         self.settingsControl.checkBoxShowNames:SetValue(self.db.showNames)
         self.settingsControl.sliderScale:SetValue(self.db.barScale)
@@ -530,13 +536,11 @@ function EMA_Totems:SettingsRefresh()
         self.settingsControl.sliderBarMargin:SetValue(self.db.barMargin)
         self.settingsControl.checkBoxShowTimers:SetValue(showTimers)
         
-        -- Lock timer settings if timer text is disabled
         self.settingsControl.sliderTimerFontSize:SetValue(self.db.timerFontSize)
         self.settingsControl.sliderTimerFontSize:SetDisabled(not showTimers)
         self.settingsControl.colorTimer:SetColor(self.db.timerColorR or 1, self.db.timerColorG or 1, self.db.timerColorB or 1, 1.0)
         self.settingsControl.colorTimer:SetDisabled(not showTimers)
         
-        -- Lock functionality if Only Timers mode is active
         self.settingsControl.buttonSetKeybind:SetDisabled(onlyTimers)
         self.settingsControl.buttonSetKeybind:SetText(self.db.sequenceKeybind ~= "" and "Keybind: " .. self.db.sequenceKeybind or "Set Cast Totem Sequence Keybind")
         self.settingsControl.editBoxSelectedShaman:SetDisabled(onlyTimers)
