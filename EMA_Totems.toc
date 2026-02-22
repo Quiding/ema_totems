@@ -1,0 +1,10 @@
+## Interface: 11503
+## Title: EMA - Totems
+## Notes: A plugin for EMA that manages totem bars for Shamans in a multiboxing setup.
+## Author: Gemini CLI
+## Version: 1.0.0
+## RequiredDeps: EMA
+## SavedVariables: EMA_TotemsProfileDB
+
+Core.lua
+UI.lua
