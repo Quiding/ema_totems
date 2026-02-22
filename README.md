@@ -2,6 +2,8 @@
 
 A Gemini-generated plugin for **EMA (Ebony's MultiBoxing Assistant)** [https://www.curseforge.com/wow/addons/ema](https://www.curseforge.com/wow/addons/ema). This addon provides unified totem bars for Shaman teams where you can change the actual totems, track timers, and bind a custom totem sequence to cast your chosen totems.
 
+Looking for team-wide cooldown tracking for all classes? Check out [EMA Cooldowns](https://github.com/Quiding/ema_cooldowns).
+
 **Note:** This addon requires your team to be in the same guild and utilize **guild communications** for synchronization.
 
 ![totembar1](https://github.com/user-attachments/assets/68b88642-8df9-4ea5-87b2-bf26ba13f303) ![totembar2](https://github.com/user-attachments/assets/c9d3d5bf-6e3d-4f6c-ac91-ef4b638c924b)
