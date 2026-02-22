@@ -1,6 +1,6 @@
 # EMA Totems
 
-A Gemini-generated plugin for **EMA (Ebony's MultiBoxing Assistant)** [https://www.curseforge.com/wow/addons/ema](https://www.curseforge.com/wow/addons/ema). This addon provides unified totem bars for Shaman teams where you can change the actual totems, track timers, and bind a custom totem sequence to cast your chosen totems.
+A Gemini-generated plugin for **EMA (Ebony's MultiBoxing Assistant)** [https://www.curseforge.com/wow/addons/ema](https://www.curseforge.com/wow/addons/ema). This addon provides unified totem bars for Shaman teams where you can change totems, track timers, and bind a custom totem sequence.
 
 Looking for team-wide cooldown tracking for all classes? Check out [EMA Cooldowns](https://github.com/Quiding/ema_cooldowns).
 
@@ -10,13 +10,12 @@ Looking for team-wide cooldown tracking for all classes? Check out [EMA Cooldown
 
 ## Key Features
 
-*   **Unified Shaman Monitoring:** Manage and view all your Shamans' totems in one compact, synchronized interface.
-*   **Custom Totem Type Sequences:** Customize the drop order (e.g., Air, Fire, Earth, Water) for each Shaman individually.
-*   **Direct Keybinding:** Assign your "Cast Totem Sequence" key directly in the settings menu—no XML errors or game menu navigation required.
-*   **"Only Timers" Mode:** A passive monitor that grays out interactive elements and persistently shows the last totem cast in each slot.
-*   **Spam-safe Macros:** Optional `/castsequence reset=3 ..., null` logic allowing you to spam your totem key without accidentally restarting the sequence prematurely.
-*   **ElvUI/OmniCC Integration:** Option to disable internal timer text to let global addons handle the styled countdowns.
-*   **Combat-Log Tracking:** Uses high-speed `SPELL_SUMMON` events for near-instant timer updates across all clients.
+*   **Unified Totem Management:** View and manage all your Shamans' totems in one compact, synchronized interface.
+*   **Custom Cast Sequences:** Customize the drop order (e.g., Air, Fire, Earth, Water) for each Shaman individually.
+*   **Direct Keybinding:** Assign your "Cast Totem Sequence" key directly in the settings menu for instant team casting.
+*   **Persistent Monitoring:** Tracks active totems and remaining durations across your entire team in real-time.
+*   **Spam-safe Macros:** Optional logic allowing you to rapidly click your totem key without accidentally restarting your cast sequence.
+*   **Global Addon Compatibility:** Built-in options to work seamlessly with OmniCC and ElvUI for timer displays.
 
 ## Installation
 
