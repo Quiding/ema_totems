@@ -6,7 +6,7 @@ EMA_Totems.moduleName = "EMA_Totems"
 EMA_Totems.settingsDatabaseName = "EMA_TotemsProfileDB"
 EMA_Totems.chatCommand = "ema-totems"
 
--- Initialize runtime tables immediately
+-- Initialize runtime tables
 EMA_Totems.shamanMembers = {}
 EMA_Totems.activeTotems = {}
 EMA_Totems.lastUsedTotems = {}
@@ -21,8 +21,8 @@ EMA_Totems.moduleIcon = "Interface\\Addons\\EMA\\Media\\SettingsIcon.tga"
 EMA_Totems.moduleOrder = 10
 
 -- EMA key bindings
-_G["BINDING_HEADER_EMATOTEMS"] = "Totems"
-_G["BINDING_NAME_EMATOTEMSSEQUENCE"] = "EMA: Cast Totem Sequence"
+_G["BINDING_HEADER_EMATOTEMS"] = "EMA Totems"
+_G["BINDING_NAME_EMATOTEMSSEQUENCE"] = "Cast Totem Sequence"
 
 -- EMA integration mixins
 local EMAModule = LibStub("Module-1.0")
@@ -101,7 +101,6 @@ EMA_Totems.settings = {
 EMA_Totems.COMMAND_UPDATE_TOTEMS = "EMATotemsUpdate"
 EMA_Totems.COMMAND_PUSH_ALL = "EMATotemsPushAll"
 EMA_Totems.COMMAND_REPORT_CLASS = "EMATotemsReportClass"
-EMA_Totems.COMMAND_TOTEM_STATUS = "EMATotemsStatus"
 
 function EMA_Totems:OnInitialize()
     local k = GetRealmName()
@@ -174,6 +173,8 @@ end
 
 function EMA_Totems:COMBAT_LOG_EVENT_UNFILTERED()
     local _, event, _, sourceGUID, sourceName, _, _, destGUID, destName, _, _, spellID, spellName = CombatLogGetCurrentEventInfo()
+    
+    -- Handle Totem Summoning/Casting
     if event == "SPELL_SUMMON" or event == "SPELL_CAST_SUCCESS" then
         local characterName = EMAUtilities:AddRealmToNameIfMissing(sourceName)
         if EMAApi.IsCharacterInTeam(characterName) then
@@ -194,7 +195,20 @@ function EMA_Totems:COMBAT_LOG_EVENT_UNFILTERED()
                     icon = icon
                 }
                 ns.UI:UpdateTimers()
+            elseif spellName == "Totemic Call" or spellName == "Totemic Recall" then
+                local sender = Ambiguate(characterName, "none")
+                self.activeTotems[sender] = {}
+                ns.UI:UpdateTimers()
             end
+        end
+    end
+
+    -- Handle Shaman Death
+    if event == "UNIT_DIED" then
+        local unit = Ambiguate(destName, "none")
+        if self.activeTotems[unit] then
+            self.activeTotems[unit] = {}
+            ns.UI:UpdateTimers()
         end
     end
 end
@@ -229,16 +243,6 @@ function EMA_Totems:EMAOnCommandReceived(characterName, commandName, ...)
         local isShaman = ...
         if isShaman then self.shamanMembers[characterName] = true end
         ns.UI:RefreshBars()
-    elseif commandName == self.COMMAND_TOTEM_STATUS then
-        local statusData = ...
-        local sender = Ambiguate(characterName, "none")
-        self.activeTotems[sender] = statusData
-        if statusData then
-            self.lastUsedTotems[sender] = self.lastUsedTotems[sender] or {}
-            for slot, data in pairs(statusData) do
-                self.lastUsedTotems[sender][slot] = { name = data.name, icon = data.icon }
-            end
-        end
     elseif commandName == self.COMMAND_PUSH_ALL then
         ns.UI:RefreshBars()
     end
@@ -287,24 +291,6 @@ end
 
 function EMA_Totems:PLAYER_TOTEM_UPDATE()
     ns.UI:UpdateTimers()
-    self:BroadcastTotemStatus()
-end
-
-function EMA_Totems:BroadcastTotemStatus()
-    local _, class = UnitClass("player")
-    if class ~= "SHAMAN" then return end
-    self:DoBroadcastTotemStatus()
-end
-
-function EMA_Totems:DoBroadcastTotemStatus()
-    local status = {}
-    for slotName, index in pairs(ns.totemMapping) do
-        local haveTotem, name, startTime, duration, icon = GetTotemInfo(index)
-        if haveTotem and duration > 0 then
-            status[slotName] = { name = name, startTime = startTime, duration = duration, icon = icon }
-        end
-    end
-    self:EMASendCommandToTeam(self.COMMAND_TOTEM_STATUS, status)
 end
 
 function EMA_Totems:PLAYER_REGEN_ENABLED()
@@ -326,7 +312,7 @@ end
 function EMA_Totems:SettingsCreate()
     self.settingsControl = {}
     self.settingsControlClass = {}
-    local EMAHelperSettings = LibStub:GetLibrary("EMAHelperSettings-1.0")
+    local EMAHelperSettings = LibStub("EMAHelperSettings-1.0")
     
     EMAHelperSettings:CreateSettings(self.settingsControlClass, "Class", "Class", function() end, "Interface\\AddOns\\EMA\\Media\\TeamCore.tga", 5)
     EMAHelperSettings:CreateSettings(self.settingsControl, "Totems", "Class", function() self:PushSettingsToTeam() end, "Interface\\Addons\\EMA\\Media\\SettingsIcon.tga", 10)
