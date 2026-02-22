@@ -1,31 +1,30 @@
 # EMA Totems
 
-A high-performance Shaman totem management plugin for **EMA (Ebony's MultiBoxing Assistant)**. This addon provides unified totem bars for Shaman teams with instant combat-log tracking and deep customization.
+A Gemini-generated plugin for **EMA (Ebony's MultiBoxing Assistant)** [https://www.curseforge.com/wow/addons/ema](https://www.curseforge.com/wow/addons/ema). This addon provides unified totem bars for Shaman teams where you can change the actual totems, track timers, and bind a custom totem sequence to cast your chosen totems.
+
+**Note:** This addon requires your team to be in the same guild and utilize **guild communications** for synchronization.
+
+![totembar1](https://github.com/user-attachments/assets/68b88642-8df9-4ea5-87b2-bf26ba13f303) ![totembar2](https://github.com/user-attachments/assets/c9d3d5bf-6e3d-4f6c-ac91-ef4b638c924b)
 
 ## Key Features
 
-*   **Unified Team Bars:** See and manage all your Shamans' totems in one compact, synchronized interface.
-*   **Direct Keybinding:** Set your "Cast Totem Sequence" keybind directly in the addon settings—no XML or game menu navigation required.
-*   **"Only Timers" Mode:** A passive monitoring mode that turns the bars into non-interactive status trackers, persistently showing the last totem cast in each slot.
-*   **Spam-safe Macros:** Optional `/castsequence reset=3 ..., null` logic allowing you to spam your totem key without accidentally restarting the sequence.
-*   **Deep Customization:** Full support for **LibSharedMedia-3.0** (Borders, Backgrounds, Fonts), scaling, alpha transparency, and custom element ordering.
-*   **Combat-Log Tracking:** Uses near-instant `SPELL_SUMMON` and `SPELL_CAST_SUCCESS` events for lag-free timer updates across all clients.
-*   **ElvUI/OmniCC Integration:** Easily disable internal timer text to let your favorite global timer addons handle the countdowns.
+*   **Unified Shaman Monitoring:** Manage and view all your Shamans' totems in one compact, synchronized interface.
+*   **Custom Totem Type Sequences:** Customize the drop order (e.g., Air, Fire, Earth, Water) for each Shaman individually.
+*   **Direct Keybinding:** Assign your "Cast Totem Sequence" key directly in the settings menu—no XML errors or game menu navigation required.
+*   **"Only Timers" Mode:** A passive monitor that grays out interactive elements and persistently shows the last totem cast in each slot.
+*   **Spam-safe Macros:** Optional `/castsequence reset=3 ..., null` logic allowing you to spam your totem key without accidentally restarting the sequence prematurely.
+*   **ElvUI/OmniCC Integration:** Option to disable internal timer text to let global addons handle the styled countdowns.
+*   **Combat-Log Tracking:** Uses high-speed `SPELL_SUMMON` events for near-instant timer updates across all clients.
 
 ## Installation
 
 1.  Download the repository.
-2.  Place the `EMA_Totems` folder into your `Interface\AddOns` directory.
+2.  Save the folder as **"EMA_Totems"** in your `Interface\AddOns` directory.
 3.  Ensure **EMA** is installed and enabled.
 
 ## Usage
 
 *   Open the EMA configuration menu and navigate to **Class > Totems**.
-*   Use the **Totem Type Sequence** list to customize the drop order for each Shaman.
+*   Select a Shaman from the **Totem Type Sequence** list to edit their specific order.
 *   Right-click any totem slot on the bar to select a specific totem.
-*   Assign a keybind using the **Set Cast Totem Sequence Keybind** button.
-
-## Requirements
-
-*   World of Warcraft (Classic/Anniversary)
-*   [EMA (Ebony's MultiBoxing Assistant)](https://www.curseforge.com/wow/addons/ema)
+*   Use the **Set Cast Totem Sequence Keybind** button to assign your shortcut.
