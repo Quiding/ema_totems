@@ -347,38 +347,34 @@ function UI:RefreshBars()
     
     local shamanList = {}
     
-    -- Deeply safe team iteration
-    local teamFunc = EMAApi.TeamListOrdered
-    if type(teamFunc) == "function" then
-        local success, iterator = pcall(teamFunc)
-        if success and type(iterator) == "function" then
-            for index, characterName in iterator do
-                local class, color = EMAApi.GetClass(characterName)
-                local unit = Ambiguate(characterName, "none")
-                
-                -- Check if shaman: via EMA data, via manual report, or via direct UnitClass if nearby
-                local isShaman = (class and class:lower() == "shaman") or (EMA_Totems.shamanMembers[characterName] == true)
-                
-                -- Local player fallback
-                if characterName == EMA_Totems.characterName then
-                    local _, myClass = UnitClass("player")
-                    if myClass == "SHAMAN" then isShaman = true end
-                end
-                
-                -- Nearby unit fallback
-                if not isShaman and UnitExists(unit) then
-                    local _, unitClass = UnitClass(unit)
-                    if unitClass == "SHAMAN" then isShaman = true end
-                end
-                
-                -- Database fallback (if they ever selected totems, they are a shaman)
-                if not isShaman and (EMA_Totems.activeTotems[unit] or (db.selectedTotems and db.selectedTotems[characterName])) then
-                    isShaman = true
-                end
+    -- Safe team iteration
+    if type(EMAApi.TeamListOrdered) == "function" then
+        for index, characterName in EMAApi.TeamListOrdered() do
+            local class, color = EMAApi.GetClass(characterName)
+            local unit = Ambiguate(characterName, "none")
+            
+            -- Check if shaman: via EMA data, via manual report, or via direct UnitClass if nearby
+            local isShaman = (class and class:lower() == "shaman") or (EMA_Totems.shamanMembers[characterName] == true)
+            
+            -- Local player fallback
+            if characterName == EMA_Totems.characterName then
+                local _, myClass = UnitClass("player")
+                if myClass == "SHAMAN" then isShaman = true end
+            end
+            
+            -- Nearby unit fallback
+            if not isShaman and UnitExists(unit) then
+                local _, unitClass = UnitClass(unit)
+                if unitClass == "SHAMAN" then isShaman = true end
+            end
+            
+            -- Database fallback (if they ever selected totems, they are a shaman)
+            if not isShaman and (EMA_Totems.activeTotems[unit] or (db.selectedTotems and db.selectedTotems[characterName])) then
+                isShaman = true
+            end
 
-                if isShaman then
-                    table.insert(shamanList, { name = characterName, position = index, color = color })
-                end
+            if isShaman then
+                table.insert(shamanList, { name = characterName, position = index, color = color })
             end
         end
     end
@@ -387,7 +383,7 @@ function UI:RefreshBars()
     if #shamanList == 0 then
         local _, myClass = UnitClass("player")
         if myClass == "SHAMAN" then
-            table.insert(shamanList, { name = EMA_Totems.characterName, position = 1, color = RAID_CLASS_COLORS["SHAMAN"] })
+            table.insert(shamanList, { name = EMA_Totems.characterName, position = 1, color = RAID_CLASS_COLORS["SHAMAN"] or {r=0, g=0.44, b=0.87} })
         end
     end
 

@@ -106,7 +106,6 @@ function EMA_Totems:OnInitialize()
     self:SettingsCreate()
     self:RegisterChatCommand("et", "ChatCommand")
     self:RegisterChatCommand("ema-totems", "ChatCommand")
-    self:SettingsRefresh()
 end
 
 function EMA_Totems:ChatCommand(input)
@@ -354,6 +353,7 @@ function EMA_Totems:SettingsCreate()
     movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight()
 
     self:EMAModuleInitialize(self.settingsControl.widgetSettings.frame)
+    self:SettingsRefresh()
     self.settingsControl.widgetSettings.content:SetHeight(-movingTop + 20)
     
     local keyListener = CreateFrame("Frame", nil, self.settingsControl.widgetSettings.frame)
