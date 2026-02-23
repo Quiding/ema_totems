@@ -319,35 +319,25 @@ function UI:Initialize()
     end
     
     self:UpdatePositionFromDB()
-    self:RefreshBars()
-    
-    -- Periodic full refresh to catch late-loading team data
-    local refreshFrame = CreateFrame("Frame")
-    refreshFrame.elapsed = 0
-    refreshFrame:SetScript("OnUpdate", function(self, elapsed)
-        self.elapsed = self.elapsed + elapsed
-        if self.elapsed > 2.0 then
-            UI:RefreshBars()
-            self.elapsed = 0
-        end
-    end)
 end
 
 function UI:RefreshBars()
     if not EMA_Totems.db or not self.masterFrame then return end
     
-    if not EMA_Totems.db.showBars then
+    local db = EMA_Totems.db
+    if not db.showBars then
         self.masterFrame:Hide()
         return
     end
 
     self.masterFrame:Show()
-    self.masterFrame:SetScale(EMA_Totems.db.barScale)
-    self.masterFrame:SetAlpha(EMA_Totems.db.barAlpha)
+    self.masterFrame:SetScale(db.barScale)
+    self.masterFrame:SetAlpha(db.barAlpha)
     ApplySkin(self.masterFrame)
     
     local shamanList = {}
-    for index, characterName in EMAApi.TeamListOrderedOnline() do
+    -- Use TeamListOrdered instead of Online to ensure we build the UI structure even if status is pending
+    for index, characterName in EMAApi.TeamListOrdered() do
         local class, color = EMAApi.GetClass(characterName)
         local unit = Ambiguate(characterName, "none")
         local isShaman = (class == "shaman") or (EMA_Totems.shamanMembers[characterName] == true)
@@ -355,7 +345,7 @@ function UI:RefreshBars()
             local _, unitClass = UnitClass(unit)
             if unitClass == "SHAMAN" then isShaman = true end
         end
-        if not isShaman and (EMA_Totems.activeTotems[unit] or EMA_Totems.db.selectedTotems[characterName]) then
+        if not isShaman and (EMA_Totems.activeTotems[unit] or db.selectedTotems[characterName]) then
             isShaman = true
         end
 
@@ -568,6 +558,16 @@ timerFrame:SetScript("OnUpdate", function(self, elapsed)
     self.elapsed = (self.elapsed or 0) + elapsed
     if self.elapsed > 0.1 then
         UI:UpdateTimers()
+        self.elapsed = 0
+    end
+end)
+
+-- Dedicated frame for periodic structure refresh (every 2 seconds)
+local structureRefreshFrame = CreateFrame("Frame")
+structureRefreshFrame:SetScript("OnUpdate", function(self, elapsed)
+    self.elapsed = (self.elapsed or 0) + elapsed
+    if self.elapsed > 2.0 then
+        UI:RefreshBars()
         self.elapsed = 0
     end
 end)
