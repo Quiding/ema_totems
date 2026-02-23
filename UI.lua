@@ -347,9 +347,9 @@ function UI:RefreshBars()
     
     local shamanList = {}
     
-    -- Safe team iteration
-    if type(EMAApi.TeamListOrdered) == "function" then
-        for index, characterName in EMAApi.TeamListOrdered() do
+    -- Use Online list to only show characters currently in game
+    if type(EMAApi.TeamListOrderedOnline) == "function" then
+        for index, characterName in EMAApi.TeamListOrderedOnline() do
             local class, color = EMAApi.GetClass(characterName)
             local unit = Ambiguate(characterName, "none")
             
