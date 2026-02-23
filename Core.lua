@@ -149,7 +149,11 @@ function EMA_Totems:DoInitialReport()
     if class == "SHAMAN" then self:EMASendCommandToMaster("EMATotemsReportClass", true) end
 end
 
-function EMA_Totems:PLAYER_LOGIN() if ns.UI then ns.UI:RefreshBars() end end
+function EMA_Totems:PLAYER_LOGIN() 
+    self:ScheduleTimer(function()
+        if ns.UI then ns.UI:RefreshBars() end
+    end, 2.0)
+end
 
 function EMA_Totems:PLAYER_TOTEM_UPDATE()
     if ns.UI then ns.UI:UpdateTimers() end

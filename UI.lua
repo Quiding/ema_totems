@@ -320,6 +320,17 @@ function UI:Initialize()
     
     self:UpdatePositionFromDB()
     self:RefreshBars()
+    
+    -- Periodic full refresh to catch late-loading team data
+    local refreshFrame = CreateFrame("Frame")
+    refreshFrame.elapsed = 0
+    refreshFrame:SetScript("OnUpdate", function(self, elapsed)
+        self.elapsed = self.elapsed + elapsed
+        if self.elapsed > 2.0 then
+            UI:RefreshBars()
+            self.elapsed = 0
+        end
+    end)
 end
 
 function UI:RefreshBars()
