@@ -268,44 +268,46 @@ function EMA_Totems:SettingsCreate()
     movingTop = movingTop - headingHeight
     self.settingsControl.checkBoxShowBars = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Show Totem Bars", function(w, e, v) self.db.showBars = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - checkBoxHeight
-    self.settingsControl.checkBoxOnlyTimers = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Only Timers Mode (Passive)", function(w, e, v) self.db.onlyTimers = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
-    movingTop = movingTop - checkBoxHeight
-    self.settingsControl.checkBoxSpamMacro = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Use Spam-safe Sequence (,null)", function(w, e, v) self.db.useSpamMacro = v; self:UpdateMacros(); self:SettingsRefresh() end)
-    movingTop = movingTop - checkBoxHeight
     self.settingsControl.checkBoxLockBars = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Lock Bars (Alt-Click to move)", function(w, e, v) self.db.lockBars = v; self:SettingsRefresh() end)
     movingTop = movingTop - checkBoxHeight
     self.settingsControl.checkBoxShowNames = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Show Character Names", function(w, e, v) self.db.showNames = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - checkBoxHeight
-    self.settingsControl.sliderScale = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Bar Scale")
-    self.settingsControl.sliderScale:SetSliderValues(0.5, 2.0, 0.01)
-    self.settingsControl.sliderScale:SetCallback("OnValueChanged", function(w, e, v) self.db.barScale = tonumber(v); ns.UI:RefreshBars(); self:SettingsRefresh() end)
-    movingTop = movingTop - sliderHeight
-    self.settingsControl.sliderAlpha = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Bar Alpha")
-    self.settingsControl.sliderAlpha:SetSliderValues(0.1, 1.0, 0.01)
-    self.settingsControl.sliderAlpha:SetCallback("OnValueChanged", function(w, e, v) self.db.barAlpha = tonumber(v); ns.UI:RefreshBars(); self:SettingsRefresh() end)
-    movingTop = movingTop - sliderHeight
+    self.settingsControl.checkBoxOnlyTimers = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Only Timers Mode (Passive)", function(w, e, v) self.db.onlyTimers = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
+    movingTop = movingTop - checkBoxHeight
+    self.settingsControl.checkBoxSpamMacro = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Use Spam-safe Sequence (,null)", function(w, e, v) self.db.useSpamMacro = v; self:UpdateMacros(); self:SettingsRefresh() end)
+    movingTop = movingTop - checkBoxHeight
     self.settingsControl.dropdownOrder = EMAHelperSettings:CreateDropdown(self.settingsControl, headingWidth, left, movingTop, "Bar Order")
     self.settingsControl.dropdownOrder:SetList({ ["NameAsc"] = "Name (Asc)", ["NameDesc"] = "Name (Desc)", ["EMAPosition"] = "EMA Team Order", ["RoleAsc"] = "Role (Tank > Healer > DPS)" })
     self.settingsControl.dropdownOrder:SetCallback("OnValueChanged", function(w, e, v) self.db.barOrder = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - dropdownHeight - verticalSpacing
+    self.settingsControl.sliderScale = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Overall Scale")
+    self.settingsControl.sliderScale:SetSliderValues(0.5, 2.0, 0.01)
+    self.settingsControl.sliderScale:SetCallback("OnValueChanged", function(w, e, v) self.db.barScale = tonumber(v); ns.UI:RefreshBars(); self:SettingsRefresh() end)
+    movingTop = movingTop - sliderHeight
+    self.settingsControl.sliderAlpha = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Overall Alpha")
+    self.settingsControl.sliderAlpha:SetSliderValues(0.1, 1.0, 0.01)
+    self.settingsControl.sliderAlpha:SetCallback("OnValueChanged", function(w, e, v) self.db.barAlpha = tonumber(v); ns.UI:RefreshBars(); self:SettingsRefresh() end)
+    movingTop = movingTop - sliderHeight
     self.settingsControl.buttonRefreshTeam = EMAHelperSettings:CreateButton(self.settingsControl, headingWidth, left, movingTop, "Refresh Team Members", function() ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - 30
 
-    EMAHelperSettings:CreateHeading(self.settingsControl, "Appearance & Layout", movingTop, false)
+    EMAHelperSettings:CreateHeading(self.settingsControl, "Appearance: Whole UI Frame", movingTop, false)
     movingTop = movingTop - headingHeight
-    self.settingsControl.dropdownBorder = EMAHelperSettings:CreateMediaBorder(self.settingsControl, headingWidth, left, movingTop, "Border Style")
+    self.settingsControl.dropdownBorder = EMAHelperSettings:CreateMediaBorder(self.settingsControl, headingWidth, left, movingTop, "UI Border Style")
     self.settingsControl.dropdownBorder:SetCallback("OnValueChanged", function(w, e, v) self.db.borderStyle = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - 110
-    self.settingsControl.dropdownBackground = EMAHelperSettings:CreateMediaBackground(self.settingsControl, headingWidth, left, movingTop, "Background Style")
+    self.settingsControl.dropdownBackground = EMAHelperSettings:CreateMediaBackground(self.settingsControl, headingWidth, left, movingTop, "UI Background Style")
     self.settingsControl.dropdownBackground:SetCallback("OnValueChanged", function(w, e, v) self.db.backgroundStyle = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - 110
-    self.settingsControl.dropdownFont = EMAHelperSettings:CreateMediaFont(self.settingsControl, headingWidth, left, movingTop, "Font Style")
-    self.settingsControl.dropdownFont:SetCallback("OnValueChanged", function(w, e, v) self.db.fontStyle = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
-    movingTop = movingTop - 110
-    self.settingsControl.sliderFontSize = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Font Size")
-    self.settingsControl.sliderFontSize:SetSliderValues(6, 24, 1)
-    self.settingsControl.sliderFontSize:SetCallback("OnValueChanged", function(w, e, v) self.db.fontSize = tonumber(v); ns.UI:RefreshBars(); self:SettingsRefresh() end)
-    movingTop = movingTop - sliderHeight
+    self.settingsControl.colorBackground = EMAHelperSettings:CreateColourPicker(self.settingsControl, headingWidth, left, movingTop, "UI Background Color")
+    self.settingsControl.colorBackground:SetCallback("OnValueChanged", function(w, e, r, g, b, a) self.db.frameBackgroundColourR, self.db.frameBackgroundColourG, self.db.frameBackgroundColourB, self.db.frameBackgroundColourA = r, g, b, a; ns.UI:RefreshBars(); self:SettingsRefresh() end)
+    movingTop = movingTop - 30
+    self.settingsControl.colorBorder = EMAHelperSettings:CreateColourPicker(self.settingsControl, headingWidth, left, movingTop, "UI Border Color")
+    self.settingsControl.colorBorder:SetCallback("OnValueChanged", function(w, e, r, g, b, a) self.db.frameBorderColourR, self.db.frameBorderColourG, self.db.frameBorderColourB, self.db.frameBorderColourA = r, g, b, a; ns.UI:RefreshBars(); self:SettingsRefresh() end)
+    movingTop = movingTop - 30
+
+    EMAHelperSettings:CreateHeading(self.settingsControl, "Sizing & Spacing", movingTop, false)
+    movingTop = movingTop - headingHeight
     self.settingsControl.sliderIconSize = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Icon Size")
     self.settingsControl.sliderIconSize:SetSliderValues(16, 64, 1)
     self.settingsControl.sliderIconSize:SetCallback("OnValueChanged", function(w, e, v) self.db.iconSize = tonumber(v); ns.UI:RefreshBars(); self:SettingsRefresh() end)
@@ -318,6 +320,16 @@ function EMA_Totems:SettingsCreate()
     self.settingsControl.sliderBarMargin:SetSliderValues(0, 50, 1)
     self.settingsControl.sliderBarMargin:SetCallback("OnValueChanged", function(w, e, v) self.db.barMargin = tonumber(v); ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - sliderHeight
+
+    EMAHelperSettings:CreateHeading(self.settingsControl, "Text & Timers", movingTop, false)
+    movingTop = movingTop - headingHeight
+    self.settingsControl.dropdownFont = EMAHelperSettings:CreateMediaFont(self.settingsControl, headingWidth, left, movingTop, "Font Style")
+    self.settingsControl.dropdownFont:SetCallback("OnValueChanged", function(w, e, v) self.db.fontStyle = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
+    movingTop = movingTop - 110
+    self.settingsControl.sliderFontSize = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Name Font Size")
+    self.settingsControl.sliderFontSize:SetSliderValues(6, 24, 1)
+    self.settingsControl.sliderFontSize:SetCallback("OnValueChanged", function(w, e, v) self.db.fontSize = tonumber(v); ns.UI:RefreshBars(); self:SettingsRefresh() end)
+    movingTop = movingTop - sliderHeight
     self.settingsControl.checkBoxShowTimers = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Show Timer Text (Disable if using OmniCC/ElvUI)", function(w, e, v) self.db.showTimers = v; self:SettingsRefresh(); ns.UI:RefreshBars() end)
     movingTop = movingTop - checkBoxHeight
     self.settingsControl.sliderTimerFontSize = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Timer Font Size")
@@ -326,14 +338,6 @@ function EMA_Totems:SettingsCreate()
     movingTop = movingTop - sliderHeight
     self.settingsControl.colorTimer = EMAHelperSettings:CreateColourPicker(self.settingsControl, headingWidth, left, movingTop, "Timer Color")
     self.settingsControl.colorTimer:SetCallback("OnValueChanged", function(w, e, r, g, b, a) self.db.timerColorR, self.db.timerColorG, self.db.timerColorB = r, g, b; ns.UI:RefreshBars(); self:SettingsRefresh() end)
-    movingTop = movingTop - 30
-    EMAHelperSettings:CreateHeading(self.settingsControl, "Colors", movingTop, false)
-    movingTop = movingTop - headingHeight
-    self.settingsControl.colorBackground = EMAHelperSettings:CreateColourPicker(self.settingsControl, headingWidth, left, movingTop, "Background Color")
-    self.settingsControl.colorBackground:SetCallback("OnValueChanged", function(w, e, r, g, b, a) self.db.frameBackgroundColourR, self.db.frameBackgroundColourG, self.db.frameBackgroundColourB, self.db.frameBackgroundColourA = r, g, b, a; ns.UI:RefreshBars(); self:SettingsRefresh() end)
-    movingTop = movingTop - 30
-    self.settingsControl.colorBorder = EMAHelperSettings:CreateColourPicker(self.settingsControl, headingWidth, left, movingTop, "Border Color")
-    self.settingsControl.colorBorder:SetCallback("OnValueChanged", function(w, e, r, g, b, a) self.db.frameBorderColourR, self.db.frameBorderColourG, self.db.frameBorderColourB, self.db.frameBorderColourA = r, g, b, a; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - 30
 
     EMAHelperSettings:CreateHeading(self.settingsControl, "Totem Type Sequence", movingTop, false)
