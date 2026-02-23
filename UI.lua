@@ -347,23 +347,20 @@ function UI:RefreshBars()
     
     local shamanList = {}
     -- Use TeamListOrdered instead of Online to ensure we build the UI structure even if status is pending
-    local success, teamIterator = pcall(EMAApi.TeamListOrdered)
-    if success and teamIterator then
-        for index, characterName in teamIterator do
-            local class, color = EMAApi.GetClass(characterName)
-            local unit = Ambiguate(characterName, "none")
-            local isShaman = (class and class:lower() == "shaman") or (EMA_Totems.shamanMembers[characterName] == true)
-            if not isShaman and UnitExists(unit) then
-                local _, unitClass = UnitClass(unit)
-                if unitClass == "SHAMAN" then isShaman = true end
-            end
-            if not isShaman and (EMA_Totems.activeTotems[unit] or (db.selectedTotems and db.selectedTotems[characterName])) then
-                isShaman = true
-            end
+    for index, characterName in EMAApi.TeamListOrdered() do
+        local class, color = EMAApi.GetClass(characterName)
+        local unit = Ambiguate(characterName, "none")
+        local isShaman = (class and class:lower() == "shaman") or (EMA_Totems.shamanMembers[characterName] == true)
+        if not isShaman and UnitExists(unit) then
+            local _, unitClass = UnitClass(unit)
+            if unitClass == "SHAMAN" then isShaman = true end
+        end
+        if not isShaman and (EMA_Totems.activeTotems[unit] or (db.selectedTotems and db.selectedTotems[characterName])) then
+            isShaman = true
+        end
 
-            if isShaman then
-                table.insert(shamanList, { name = characterName, position = index, color = color })
-            end
+        if isShaman then
+            table.insert(shamanList, { name = characterName, position = index, color = color })
         end
     end
 
