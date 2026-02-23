@@ -21,8 +21,18 @@ local function ApplySkin(f)
             tile = true, tileSize = 16, edgeSize = 10,
             insets = { left = 3, right = 3, top = 3, bottom = 3 }
         })
-        f:SetBackdropColor(db.frameBackgroundColourR, db.frameBackgroundColourG, db.frameBackgroundColourB, db.frameBackgroundColourA)
-        f:SetBackdropBorderColor(db.frameBorderColourR, db.frameBorderColourG, db.frameBorderColourB, db.frameBorderColourA)
+        f:SetBackdropColor(
+            db.frameBackgroundColourR or 0.1, 
+            db.frameBackgroundColourG or 0.1, 
+            db.frameBackgroundColourB or 0.1, 
+            db.frameBackgroundColourA or 0.7
+        )
+        f:SetBackdropBorderColor(
+            db.frameBorderColourR or 0.5, 
+            db.frameBorderColourG or 0.5, 
+            db.frameBorderColourB or 0.5, 
+            db.frameBorderColourA or 1.0
+        )
     end
 end
 
@@ -322,7 +332,7 @@ function UI:Initialize()
 end
 
 function UI:RefreshBars()
-    if not EMA_Totems.db or not self.masterFrame then return end
+    if not EMA_Totems.db or not self.masterFrame or not EMAApi then return end
     
     local db = EMA_Totems.db
     if not db.showBars then
@@ -331,26 +341,29 @@ function UI:RefreshBars()
     end
 
     self.masterFrame:Show()
-    self.masterFrame:SetScale(db.barScale)
-    self.masterFrame:SetAlpha(db.barAlpha)
+    self.masterFrame:SetScale(db.barScale or 1.0)
+    self.masterFrame:SetAlpha(db.barAlpha or 1.0)
     ApplySkin(self.masterFrame)
     
     local shamanList = {}
     -- Use TeamListOrdered instead of Online to ensure we build the UI structure even if status is pending
-    for index, characterName in EMAApi.TeamListOrdered() do
-        local class, color = EMAApi.GetClass(characterName)
-        local unit = Ambiguate(characterName, "none")
-        local isShaman = (class == "shaman") or (EMA_Totems.shamanMembers[characterName] == true)
-        if not isShaman and UnitExists(unit) then
-            local _, unitClass = UnitClass(unit)
-            if unitClass == "SHAMAN" then isShaman = true end
-        end
-        if not isShaman and (EMA_Totems.activeTotems[unit] or db.selectedTotems[characterName]) then
-            isShaman = true
-        end
+    local success, teamIterator = pcall(EMAApi.TeamListOrdered)
+    if success and teamIterator then
+        for index, characterName in teamIterator do
+            local class, color = EMAApi.GetClass(characterName)
+            local unit = Ambiguate(characterName, "none")
+            local isShaman = (class and class:lower() == "shaman") or (EMA_Totems.shamanMembers[characterName] == true)
+            if not isShaman and UnitExists(unit) then
+                local _, unitClass = UnitClass(unit)
+                if unitClass == "SHAMAN" then isShaman = true end
+            end
+            if not isShaman and (EMA_Totems.activeTotems[unit] or (db.selectedTotems and db.selectedTotems[characterName])) then
+                isShaman = true
+            end
 
-        if isShaman then
-            table.insert(shamanList, { name = characterName, position = index, color = color })
+            if isShaman then
+                table.insert(shamanList, { name = characterName, position = index, color = color })
+            end
         end
     end
 
@@ -558,16 +571,6 @@ timerFrame:SetScript("OnUpdate", function(self, elapsed)
     self.elapsed = (self.elapsed or 0) + elapsed
     if self.elapsed > 0.1 then
         UI:UpdateTimers()
-        self.elapsed = 0
-    end
-end)
-
--- Dedicated frame for periodic structure refresh (every 2 seconds)
-local structureRefreshFrame = CreateFrame("Frame")
-structureRefreshFrame:SetScript("OnUpdate", function(self, elapsed)
-    self.elapsed = (self.elapsed or 0) + elapsed
-    if self.elapsed > 2.0 then
-        UI:RefreshBars()
         self.elapsed = 0
     end
 end)

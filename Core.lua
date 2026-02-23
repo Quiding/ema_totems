@@ -131,7 +131,13 @@ function EMA_Totems:OnEnable()
     self.keyBindingFrame = CreateFrame("Frame", nil, UIParent)
     self:UPDATE_BINDINGS()
     self:ScheduleTimer("DoInitialReport", 1.0)
-    if ns.UI then ns.UI:Initialize() end
+    if ns.UI then 
+        ns.UI:Initialize() 
+        -- Force multiple refreshes during the first 30 seconds of login
+        self:ScheduleRepeatingTimer(function()
+            if ns.UI then ns.UI:RefreshBars() end
+        end, 2.0, 15) -- 15 times every 2 seconds = 30 seconds
+    end
 end
 
 function EMA_Totems:UPDATE_BINDINGS()
