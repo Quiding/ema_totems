@@ -93,6 +93,8 @@ EMA_Totems.settings = {
         timerColorR = 1.0,
         timerColorG = 1.0,
         timerColorB = 1.0,
+        breakUpBars = false,
+        individualBarPositions = {},
         selectedTotems = {},
         castSequences = {},
         teamBarsPos = { point = "CENTER", x = 0, y = 0 },
@@ -102,10 +104,150 @@ EMA_Totems.settings = {
     }
 }
 
+local function PatchSharedMediaWidgets()
+    local EMAHelperSettings = LibStub:GetLibrary("EMAHelperSettings-1.0", true)
+    if not EMAHelperSettings or EMAHelperSettings.EMAPatchedV5 then return end
+
+    local function FixLayout(widget)
+        if not widget or not widget.frame then return end
+        local frame = widget.frame
+        
+        -- Force widget height
+        widget:SetHeight(85)
+        frame:SetHeight(85)
+        
+        if frame.label then
+            frame.label:ClearAllPoints()
+            frame.label:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, 0)
+            frame.label:SetPoint("TOPRIGHT", frame, "TOPRIGHT", 0, 0)
+            frame.label:SetJustifyH("LEFT")
+            frame.label:SetHeight(20)
+        end
+
+        if frame.displayButton then
+            frame.displayButton:ClearAllPoints()
+            -- Position texture preview square below the label
+            frame.displayButton:SetPoint("TOPLEFT", frame, "TOPLEFT", 0, -25)
+            frame.displayButton:SetSize(42, 42)
+            
+            if frame.DLeft then
+                frame.DLeft:ClearAllPoints()
+                -- Anchor dropdown box to the right of the texture preview with a 10px gap
+                frame.DLeft:SetPoint("LEFT", frame.displayButton, "RIGHT", 10, 0)
+                
+                if frame.DRight then
+                    frame.DRight:ClearAllPoints()
+                    frame.DRight:SetPoint("TOP", frame.DLeft, "TOP")
+                    frame.DRight:SetPoint("RIGHT", frame, "RIGHT", 0, 0)
+                end
+                
+                if frame.DMiddle then
+                    frame.DMiddle:ClearAllPoints()
+                    frame.DMiddle:SetPoint("TOP", frame.DLeft, "TOP")
+                    frame.DMiddle:SetPoint("LEFT", frame.DLeft, "RIGHT")
+                    frame.DMiddle:SetPoint("RIGHT", frame.DRight, "LEFT")
+                end
+
+                if frame.text then
+                    frame.text:ClearAllPoints()
+                    frame.text:SetPoint("LEFT", frame.DLeft, "LEFT", 26, 1)
+                    frame.text:SetPoint("RIGHT", frame.DRight, "RIGHT", -43, 1)
+                    frame.text:SetJustifyH("RIGHT")
+                end
+
+                if frame.dropButton then
+                    frame.dropButton:ClearAllPoints()
+                    frame.dropButton:SetPoint("TOPRIGHT", frame.DRight, "TOPRIGHT", -16, -18)
+                    
+                    -- Create or update the clickable overlay for the entire bar
+                    if not frame.clickableOverlay then
+                        frame.clickableOverlay = CreateFrame("Button", nil, frame)
+                        frame.clickableOverlay:SetHighlightTexture("Interface\\Buttons\\UI-Common-MouseHilight", "ADD")
+                        frame.clickableOverlay:SetScript("OnClick", function()
+                            if frame.dropButton then
+                                frame.dropButton:Click()
+                            end
+                        end)
+                    end
+                    frame.clickableOverlay:ClearAllPoints()
+                    frame.clickableOverlay:SetPoint("TOPLEFT", frame.DLeft, "TOPLEFT", 15, -15)
+                    frame.clickableOverlay:SetPoint("BOTTOMRIGHT", frame.DRight, "BOTTOMRIGHT", -15, 15)
+                end
+            end
+        end
+    end
+
+    local function UpdateSliderText(w)
+        if not w or not w.editbox or not w.value then return end
+        local value = w.value
+        if w.ispercent then
+            w.editbox:SetText(("%s%%"):format(math.floor(value * 1000 + 0.5) / 10))
+        else
+            w.editbox:SetText(math.floor(value * 100 + 0.5) / 100)
+        end
+    end
+
+    local AceGUI = LibStub("AceGUI-3.0", true)
+    if AceGUI then
+        local oldAcquire = AceGUI.Acquire
+        AceGUI.Acquire = function(self, type)
+            local widget = oldAcquire(self, type)
+            if not widget then return widget end
+            
+            if widget.frame and type and type:find("^LSM30_") then
+                widget.alignoffset = 0
+                FixLayout(widget)
+                if not widget.EMAPatchedHookV4 then
+                    hooksecurefunc(widget, "SetLabel", function() FixLayout(widget) end)
+                    hooksecurefunc(widget, "SetWidth", function() FixLayout(widget) end)
+                    widget.EMAPatchedHookV4 = true
+                end
+            end
+            
+            if type == "Slider" and not widget.EMASliderPatched then
+                hooksecurefunc(widget, "SetValue", function(w) UpdateSliderText(w) end)
+                widget.frame:HookScript("OnShow", function() UpdateSliderText(widget) end)
+                widget.EMASliderPatched = true
+            end
+            
+            return widget
+        end
+    end
+
+    local methods = {"CreateMediaStatus", "CreateMediaBorder", "CreateMediaBackground", "CreateMediaFont", "CreateMediaSound"}
+    for _, m in ipairs(methods) do
+        local old = EMAHelperSettings[m]
+        if old then
+            EMAHelperSettings[m] = function(self, ...)
+                local w = old(self, ...)
+                if w then
+                    FixLayout(w)
+                    C_Timer.After(0.01, function() FixLayout(w) end)
+                end
+                return w
+            end
+        end
+    end
+    EMAHelperSettings.EMAPatchedV5 = true
+end
+
 function EMA_Totems:OnInitialize()
+    PatchSharedMediaWidgets()
     self:SettingsCreate()
     self:RegisterChatCommand("et", "ChatCommand")
     self:RegisterChatCommand("ema-totems", "ChatCommand")
+end
+
+function EMA_Totems:UpdateTotemForShaman(shamanName, slot, totemID)
+    local myName = self.characterName
+    if shamanName == myName then
+        if not self.db.selectedTotems[myName] then self.db.selectedTotems[myName] = {} end
+        self.db.selectedTotems[myName][slot] = totemID
+        ns.UI:UpdateMyBar()
+        self:PushSettingsToTeam()
+    else
+        self:EMASendCommandToCharacter(shamanName, "EMATotemsUpdate", slot, totemID)
+    end
 end
 
 function EMA_Totems:ChatCommand(input)
@@ -269,15 +411,31 @@ function EMA_Totems:SettingsCreate()
     movingTop = movingTop - headingHeight
     self.settingsControl.checkBoxShowBars = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Show Totem Bars", function(w, e, v) self.db.showBars = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - checkBoxHeight
-    self.settingsControl.checkBoxLockBars = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Lock Bars (Alt-Click to move)", function(w, e, v) self.db.lockBars = v; self:SettingsRefresh() end)
+    self.settingsControl.checkBoxLockBars = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Lock Bars", function(w, e, v) self.db.lockBars = v; self:SettingsRefresh() end)
     movingTop = movingTop - checkBoxHeight
     self.settingsControl.checkBoxShowNames = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Show Character Names", function(w, e, v) self.db.showNames = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - checkBoxHeight
+    self.settingsControl.checkBoxBreakUpBars = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Ungrouped Bars (Independent Movement)", function(w, e, v) self.db.breakUpBars = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
+    movingTop = movingTop - checkBoxHeight
+    self.settingsControl.buttonResetPositions = EMAHelperSettings:CreateButton(self.settingsControl, headingWidth, left, movingTop, "Reset All Independent Bar Positions", function() 
+        self.db.individualBarPositions = {}
+        if ns.UI and ns.UI.teamBars then
+            for characterName, bar in pairs(ns.UI.teamBars) do
+                local charKey = Ambiguate(characterName, "none"):lower()
+                self.db.individualBarPositions[charKey] = { point = "CENTER", relativePoint = "CENTER", x = 0, y = 0 }
+                bar:ClearAllPoints()
+                bar:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+            end
+        end
+        ns.UI:RefreshBars()
+        self:Print("Independent bar positions reset to center.") 
+    end)
+    movingTop = movingTop - 30
     self.settingsControl.checkBoxOnlyTimers = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Only Timers Mode (Passive)", function(w, e, v) self.db.onlyTimers = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - checkBoxHeight
     self.settingsControl.checkBoxSpamMacro = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Use Spam-safe Sequence (,null)", function(w, e, v) self.db.useSpamMacro = v; self:UpdateMacros(); self:SettingsRefresh() end)
     movingTop = movingTop - checkBoxHeight
-    self.settingsControl.dropdownOrder = EMAHelperSettings:CreateDropdown(self.settingsControl, 450, left + 20, movingTop, "Bar Order")
+    self.settingsControl.dropdownOrder = EMAHelperSettings:CreateDropdown(self.settingsControl, 450, left, movingTop, "Bar Order")
     self.settingsControl.dropdownOrder:SetList({ ["NameAsc"] = "Name (Asc)", ["NameDesc"] = "Name (Desc)", ["EMAPosition"] = "EMA Team Order", ["RoleAsc"] = "Role (Tank > Healer > DPS)" })
     self.settingsControl.dropdownOrder:SetCallback("OnValueChanged", function(w, e, v) self.db.barOrder = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - dropdownHeight - verticalSpacing
@@ -286,7 +444,7 @@ function EMA_Totems:SettingsCreate()
     self.settingsControl.sliderScale:SetCallback("OnValueChanged", function(w, e, v) self.db.barScale = tonumber(v); ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - sliderHeight
     self.settingsControl.sliderAlpha = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Overall Alpha")
-    self.settingsControl.sliderAlpha:SetSliderValues(0.1, 1.0, 0.01)
+    self.settingsControl.sliderAlpha:SetSliderValues(0.0, 1.0, 0.01)
     self.settingsControl.sliderAlpha:SetCallback("OnValueChanged", function(w, e, v) self.db.barAlpha = tonumber(v); ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - sliderHeight
     self.settingsControl.buttonRefreshTeam = EMAHelperSettings:CreateButton(self.settingsControl, headingWidth, left, movingTop, "Refresh Team Members", function() ns.UI:RefreshBars(); self:SettingsRefresh() end)
@@ -294,16 +452,16 @@ function EMA_Totems:SettingsCreate()
 
     EMAHelperSettings:CreateHeading(self.settingsControl, "Appearance: Whole UI Frame", movingTop, false)
     movingTop = movingTop - headingHeight
-    self.settingsControl.dropdownBorder = EMAHelperSettings:CreateMediaBorder(self.settingsControl, 450, left + 20, movingTop, "UI Border Style")
+    self.settingsControl.dropdownBorder = EMAHelperSettings:CreateMediaBorder(self.settingsControl, 450, left, movingTop, "UI Border Style")
     self.settingsControl.dropdownBorder:SetCallback("OnValueChanged", function(w, e, v) self.db.borderStyle = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
-    movingTop = movingTop - 110
-    self.settingsControl.dropdownBackground = EMAHelperSettings:CreateMediaBackground(self.settingsControl, 450, left + 20, movingTop, "UI Background Style")
+    movingTop = movingTop - 85
+    self.settingsControl.dropdownBackground = EMAHelperSettings:CreateMediaBackground(self.settingsControl, 450, left, movingTop, "UI Background Style")
     self.settingsControl.dropdownBackground:SetCallback("OnValueChanged", function(w, e, v) self.db.backgroundStyle = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
-    movingTop = movingTop - 110
-    self.settingsControl.colorBackground = EMAHelperSettings:CreateColourPicker(self.settingsControl, 450, left + 20, movingTop, "UI Background Color")
+    movingTop = movingTop - 85
+    self.settingsControl.colorBackground = EMAHelperSettings:CreateColourPicker(self.settingsControl, 450, left, movingTop, "UI Background Color")
     self.settingsControl.colorBackground:SetCallback("OnValueChanged", function(w, e, r, g, b, a) self.db.frameBackgroundColourR, self.db.frameBackgroundColourG, self.db.frameBackgroundColourB, self.db.frameBackgroundColourA = r, g, b, a; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - 30
-    self.settingsControl.colorBorder = EMAHelperSettings:CreateColourPicker(self.settingsControl, 450, left + 20, movingTop, "UI Border Color")
+    self.settingsControl.colorBorder = EMAHelperSettings:CreateColourPicker(self.settingsControl, 450, left, movingTop, "UI Border Color")
     self.settingsControl.colorBorder:SetCallback("OnValueChanged", function(w, e, r, g, b, a) self.db.frameBorderColourR, self.db.frameBorderColourG, self.db.frameBorderColourB, self.db.frameBorderColourA = r, g, b, a; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - 30
 
@@ -324,9 +482,9 @@ function EMA_Totems:SettingsCreate()
 
     EMAHelperSettings:CreateHeading(self.settingsControl, "Text & Timers", movingTop, false)
     movingTop = movingTop - headingHeight
-    self.settingsControl.dropdownFont = EMAHelperSettings:CreateMediaFont(self.settingsControl, 450, left + 20, movingTop, "Font Style")
+    self.settingsControl.dropdownFont = EMAHelperSettings:CreateMediaFont(self.settingsControl, 450, left, movingTop, "Font Style")
     self.settingsControl.dropdownFont:SetCallback("OnValueChanged", function(w, e, v) self.db.fontStyle = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
-    movingTop = movingTop - 110
+    movingTop = movingTop - 85
     self.settingsControl.sliderFontSize = EMAHelperSettings:CreateSlider(self.settingsControl, headingWidth, left, movingTop, "Name Font Size")
     self.settingsControl.sliderFontSize:SetSliderValues(6, 24, 1)
     self.settingsControl.sliderFontSize:SetCallback("OnValueChanged", function(w, e, v) self.db.fontSize = tonumber(v); ns.UI:RefreshBars(); self:SettingsRefresh() end)
@@ -337,7 +495,7 @@ function EMA_Totems:SettingsCreate()
     self.settingsControl.sliderTimerFontSize:SetSliderValues(6, 32, 1)
     self.settingsControl.sliderTimerFontSize:SetCallback("OnValueChanged", function(w, e, v) self.db.timerFontSize = tonumber(v); ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - sliderHeight
-    self.settingsControl.colorTimer = EMAHelperSettings:CreateColourPicker(self.settingsControl, 450, left + 20, movingTop, "Timer Color")
+    self.settingsControl.colorTimer = EMAHelperSettings:CreateColourPicker(self.settingsControl, 450, left, movingTop, "Timer Color")
     self.settingsControl.colorTimer:SetCallback("OnValueChanged", function(w, e, r, g, b, a) self.db.timerColorR, self.db.timerColorG, self.db.timerColorB = r, g, b; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - 30
 
@@ -353,7 +511,7 @@ function EMA_Totems:SettingsCreate()
     }
     EMAHelperSettings:CreateScrollList(self.settingsControl.sequenceList)
     movingTop = movingTop - self.settingsControl.sequenceList.listHeight - verticalSpacing
-    self.settingsControl.editBoxSelectedShaman = EMAHelperSettings:CreateEditBox(self.settingsControl, 450, left + 20, movingTop, "Edit Sequence for Selected Shaman")
+    self.settingsControl.editBoxSelectedShaman = EMAHelperSettings:CreateEditBox(self.settingsControl, 450, left, movingTop, "Edit Sequence for Selected Shaman")
     self.settingsControl.editBoxSelectedShaman:SetCallback("OnEnterPressed", function(w, e, v) if self.selectedShamanName then self.db.castSequences[self.selectedShamanName] = v; self:SettingsSequenceListScrollRefresh(); self:UpdateMacros(); self:SettingsRefresh() end end)
     movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight()
 
@@ -418,6 +576,7 @@ function EMA_Totems:SettingsRefresh()
         self.settingsControl.checkBoxSpamMacro:SetDisabled(onlyTimers)
         self.settingsControl.checkBoxLockBars:SetValue(db.lockBars)
         self.settingsControl.checkBoxShowNames:SetValue(db.showNames)
+        self.settingsControl.checkBoxBreakUpBars:SetValue(db.breakUpBars)
         
         self.settingsControl.sliderScale:SetValue(db.barScale or 1.0)
         self.settingsControl.sliderAlpha:SetValue(db.barAlpha or 1.0)

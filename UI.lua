@@ -18,8 +18,8 @@ local function ApplySkin(f)
         f:SetBackdrop({
             bgFile = backgroundFile,
             edgeFile = borderFile,
-            tile = true, tileSize = 16, edgeSize = 10,
-            insets = { left = 3, right = 3, top = 3, bottom = 3 }
+            tile = false, tileSize = 0, edgeSize = 2,
+            insets = { left = 0, right = 0, top = 0, bottom = 0 }
         })
         f:SetBackdropColor(
             db.frameBackgroundColourR or 0.1, 
@@ -45,8 +45,8 @@ local function ApplySelectorSkin(f)
         f:SetBackdrop({
             bgFile = backgroundFile,
             edgeFile = borderFile,
-            tile = true, tileSize = 16, edgeSize = 10,
-            insets = { left = 3, right = 3, top = 3, bottom = 3 }
+            tile = false, tileSize = 0, edgeSize = 2,
+            insets = { left = 0, right = 0, top = 0, bottom = 0 }
         })
         f:SetBackdropColor(1, 1, 1, 1)
         f:SetBackdropBorderColor(1, 1, 1, 1)
@@ -144,6 +144,33 @@ local function CreateTotemBar(shamanName, parent)
     local f = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     f.shamanName = shamanName
 
+    -- Move Handle
+    f.handle = CreateFrame("Frame", nil, f, "BackdropTemplate")
+    f.handle:SetSize(10, 10)
+    f.handle:SetPoint("TOPRIGHT", f, "TOPLEFT", 0, 0)
+    f.handle:SetBackdrop({
+        bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+        edgeFile = "Interface\\Buttons\\WHITE8X8",
+        edgeSize = 1,
+    })
+    f.handle:SetBackdropColor(0, 0, 0, 1)
+    f.handle:SetBackdropBorderColor(0.2, 0.2, 0.2, 1)
+    f.handle:EnableMouse(true)
+    f.handle:RegisterForDrag("LeftButton")
+    f.handle:SetScript("OnDragStart", function()
+        if not EMA_Totems.db.lockBars then
+            f:StartMoving()
+        end
+    end)
+    f.handle:SetScript("OnDragStop", function()
+        f:StopMovingOrSizing()
+        local point, _, relativePoint, x, y = f:GetPoint()
+        if point then
+            local charKey = Ambiguate(f.shamanName, "none"):lower()
+            EMA_Totems.db.individualBarPositions[charKey] = { point = point, relativePoint = relativePoint, x = x, y = y }
+        end
+    end)
+
     -- Name label
     f.nameLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     f.nameLabel:SetText(Ambiguate(shamanName, "short"))
@@ -155,16 +182,15 @@ local function CreateTotemBar(shamanName, parent)
         local b = CreateFrame("Button", nil, f, "SecureActionButtonTemplate, BackdropTemplate")
         b.slot = slot
         b:SetBackdrop({
-            bgFile = "Interface\\Buttons\\WHITE8X8",
-            edgeFile = "Interface\\Buttons\\WHITE8X8",
-            edgeSize = 1,
+            bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+            edgeFile = nil,
+            edgeSize = 0,
         })
-        b:SetBackdropColor(0, 0, 0, 0.5)
-        b:SetBackdropBorderColor(0, 0, 0, 1)
+        b:SetBackdropColor(0, 0, 0, 0)
+        b:SetBackdropBorderColor(0, 0, 0, 0)
         
-        b.icon = b:CreateTexture(nil, "ARTWORK")
-        b.icon:SetPoint("TOPLEFT", 1, -1)
-        b.icon:SetPoint("BOTTOMRIGHT", -1, 1)
+        b.icon = b:CreateTexture(nil, "BACKGROUND")
+        b.icon:SetAllPoints(b)
         b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
         
         b.hl = b:CreateTexture(nil, "HIGHLIGHT")
@@ -215,16 +241,15 @@ local function CreateTotemBar(shamanName, parent)
         local seqBtn = CreateFrame("Button", "EMATotemsSequenceButton", f, "SecureActionButtonTemplate, BackdropTemplate")
         seqBtn:RegisterForClicks("AnyUp", "AnyDown")
         seqBtn:SetBackdrop({
-            bgFile = "Interface\\Buttons\\WHITE8X8",
-            edgeFile = "Interface\\Buttons\\WHITE8X8",
-            edgeSize = 1,
+            bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+            edgeFile = nil,
+            edgeSize = 0,
         })
-        seqBtn:SetBackdropColor(0, 0, 0, 0.5)
-        seqBtn:SetBackdropBorderColor(0, 0, 0, 1)
+        seqBtn:SetBackdropColor(0, 0, 0, 0)
+        seqBtn:SetBackdropBorderColor(0, 0, 0, 0)
 
-        seqBtn.icon = seqBtn:CreateTexture(nil, "ARTWORK")
-        seqBtn.icon:SetPoint("TOPLEFT", 1, -1)
-        seqBtn.icon:SetPoint("BOTTOMRIGHT", -1, 1)
+        seqBtn.icon = seqBtn:CreateTexture(nil, "BACKGROUND")
+        seqBtn.icon:SetAllPoints(seqBtn)
         seqBtn.icon:SetTexture("Interface\\Icons\\Spell_totem_wardofdraining")
         seqBtn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
 
@@ -252,13 +277,25 @@ local function CreateTotemBar(shamanName, parent)
         local hasSeq = self.seqBtn and not onlyTimers
         local numIcons = hasSeq and 5 or 4
         
-        local totalWidth = (size * numIcons) + (margin * (numIcons - 1)) + 4
-        self:SetSize(totalWidth, size + nameHeight + 4)
+        ApplyFontStyle(self.nameLabel)
+        local nameWidth = showNames and (self.nameLabel:GetStringWidth() + 4) or 0
+        local iconsWidth = (size * numIcons) + (margin * (numIcons - 1))
+        local totalWidth = math.max(nameWidth, iconsWidth)
+        self:SetSize(math.max(1, totalWidth), size + nameHeight)
+
+        -- Handle
+        if EMA_Totems.db.breakUpBars and not EMA_Totems.db.lockBars then
+            self.handle:Show()
+        else
+            self.handle:Hide()
+        end
+        self.handle:SetHeight(size + nameHeight)
 
         self.nameLabel:ClearAllPoints()
         if showNames then
             self.nameLabel:Show()
-            self.nameLabel:SetPoint("TOPLEFT", 2, -2)
+            self.nameLabel:SetJustifyH("LEFT")
+            self.nameLabel:SetPoint("TOPLEFT", 0, 0)
         else
             self.nameLabel:Hide()
         end
@@ -268,7 +305,7 @@ local function CreateTotemBar(shamanName, parent)
             local b = self.buttons[slot]
             b:SetSize(size, size)
             b:ClearAllPoints()
-            b:SetPoint("BOTTOMLEFT", (i-1)*(size + margin) + 2, 2)
+            b:SetPoint("BOTTOMLEFT", (i-1)*(size + margin), 0)
             
             -- Set Font
             local fontFile = SharedMedia:Fetch("font", EMA_Totems.db.fontStyle)
@@ -282,11 +319,10 @@ local function CreateTotemBar(shamanName, parent)
                 self.seqBtn:Show()
                 self.seqBtn:SetSize(size, size)
                 self.seqBtn:ClearAllPoints()
-                self.seqBtn:SetPoint("BOTTOMLEFT", 4*(size + margin) + 2, 2)
+                self.seqBtn:SetPoint("BOTTOMLEFT", 4*(size + margin), 0)
             end
         end
         ApplySkin(self)
-        ApplyFontStyle(self.nameLabel)
     end
 
     f:UpdateLayout()
@@ -313,17 +349,32 @@ function UI:Initialize()
         self.masterFrame = CreateFrame("Frame", "EMATotemsMasterFrame", UIParent, "BackdropTemplate")
         self.masterFrame:SetMovable(true)
         self.masterFrame:EnableMouse(true)
-        self.masterFrame:RegisterForDrag("LeftButton")
-        self.masterFrame:SetScript("OnDragStart", function(self)
-            if not EMA_Totems.db or not EMA_Totems.db.lockBars or IsAltKeyDown() then
-                self:StartMoving()
+        self.masterFrame:SetFrameStrata("MEDIUM")
+        self.masterFrame:SetSize(200, 40)
+
+        -- Master Handle
+        self.masterFrame.handle = CreateFrame("Frame", nil, self.masterFrame, "BackdropTemplate")
+        self.masterFrame.handle:SetSize(10, 40)
+        self.masterFrame.handle:SetPoint("TOPRIGHT", self.masterFrame, "TOPLEFT", 0, 0)
+        self.masterFrame.handle:SetBackdrop({
+            bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
+            edgeFile = "Interface\\Buttons\\WHITE8X8",
+            edgeSize = 1,
+        })
+        self.masterFrame.handle:SetBackdropColor(0, 0, 0, 1)
+        self.masterFrame.handle:SetBackdropBorderColor(0.2, 0.2, 0.2, 1)
+        self.masterFrame.handle:EnableMouse(true)
+        self.masterFrame.handle:RegisterForDrag("LeftButton")
+        self.masterFrame.handle:SetScript("OnDragStart", function()
+            if not EMA_Totems.db or not EMA_Totems.db.lockBars then
+                self.masterFrame:StartMoving()
             end
         end)
-        self.masterFrame:SetScript("OnDragStop", function(self)
-            self:StopMovingOrSizing()
+        self.masterFrame.handle:SetScript("OnDragStop", function()
+            self.masterFrame:StopMovingOrSizing()
             if EMA_Totems.db then
-                local point, _, _, x, y = self:GetPoint()
-                EMA_Totems.db.teamBarsPos = { point = point, x = x, y = y }
+                local point, _, relativePoint, x, y = self.masterFrame:GetPoint()
+                EMA_Totems.db.teamBarsPos = { point = point, relativePoint = relativePoint, x = x, y = y }
             end
         end)
     end
@@ -343,39 +394,49 @@ function UI:RefreshBars()
     self.masterFrame:Show()
     self.masterFrame:SetScale(db.barScale or 1.0)
     self.masterFrame:SetAlpha(db.barAlpha or 1.0)
-    ApplySkin(self.masterFrame)
+    
+    if db.breakUpBars then
+        self.masterFrame:SetBackdrop(nil)
+        self.masterFrame.handle:Hide()
+    else
+        ApplySkin(self.masterFrame)
+        if not db.lockBars then
+            self.masterFrame.handle:Show()
+        else
+            self.masterFrame.handle:Hide()
+        end
+    end
     
     local shamanList = {}
     
-    -- Use Online list to only show characters currently in game
-    if type(EMAApi.TeamListOrderedOnline) == "function" then
-        for index, characterName in EMAApi.TeamListOrderedOnline() do
-            local class, color = EMAApi.GetClass(characterName)
-            local unit = Ambiguate(characterName, "none")
-            
-            -- Check if shaman: via EMA data, via manual report, or via direct UnitClass if nearby
-            local isShaman = (class and class:lower() == "shaman") or (EMA_Totems.shamanMembers[characterName] == true)
-            
-            -- Local player fallback
-            if characterName == EMA_Totems.characterName then
-                local _, myClass = UnitClass("player")
-                if myClass == "SHAMAN" then isShaman = true end
-            end
-            
-            -- Nearby unit fallback
-            if not isShaman and UnitExists(unit) then
-                local _, unitClass = UnitClass(unit)
-                if unitClass == "SHAMAN" then isShaman = true end
-            end
-            
-            -- Database fallback (if they ever selected totems, they are a shaman)
-            if not isShaman and (EMA_Totems.activeTotems[unit] or (db.selectedTotems and db.selectedTotems[characterName])) then
-                isShaman = true
-            end
+    -- Use Team list and check online status (be more permissive with online check)
+    for index, characterName in EMAApi.TeamListOrdered() do
+        local isOnline = EMAApi.GetCharacterOnlineStatus(characterName)
+        local class, color = EMAApi.GetClass(characterName)
+        local unit = Ambiguate(characterName, "none")
+        
+        -- Check if shaman: via EMA data, via manual report, or via direct UnitClass if nearby
+        local isShaman = (class and class:lower() == "shaman") or (EMA_Totems.shamanMembers[characterName] == true)
+        
+        -- Local player fallback
+        if characterName == EMA_Totems.characterName then
+            local _, myClass = UnitClass("player")
+            if myClass == "SHAMAN" then isShaman = true end
+        end
+        
+        -- Nearby unit fallback
+        if not isShaman and UnitExists(unit) then
+            local _, unitClass = UnitClass(unit)
+            if unitClass == "SHAMAN" then isShaman = true end
+        end
+        
+        -- Database fallback (if they ever selected totems, they are a shaman)
+        if not isShaman and (EMA_Totems.activeTotems[unit] or (db.selectedTotems and (db.selectedTotems[characterName] or db.selectedTotems[unit]))) then
+            isShaman = true
+        end
 
-            if isShaman then
-                table.insert(shamanList, { name = characterName, position = index, color = color })
-            end
+        if isShaman and (isOnline or characterName == EMA_Totems.characterName) then
+            table.insert(shamanList, { name = characterName, position = index, color = color })
         end
     end
 
@@ -416,39 +477,83 @@ function UI:RefreshBars()
     for name, bar in pairs(self.teamBars) do bar:Hide() end
 
     local shamanCount = 0
-    local currentY = -4
+    local currentY = 0
     local barMargin = EMA_Totems.db.barMargin
     local maxBarWidth = 0
     
     for _, info in ipairs(shamanList) do
         local characterName = info.name
         local color = info.color
+        local charKey = Ambiguate(characterName, "none"):lower()
         shamanCount = shamanCount + 1
         
         if not self.teamBars[characterName] then
             self.teamBars[characterName] = CreateTotemBar(characterName, self.masterFrame)
         end
         local bar = self.teamBars[characterName]
+        
+        if db.breakUpBars then
+            local pos = db.individualBarPositions[charKey]
+            if not pos then
+                -- Initial position calculation: Stay where you were in the group
+                local point, relativeTo, relativePoint, x, y = bar:GetPoint()
+                if point and bar:GetLeft() and bar:GetTop() then
+                    -- Convert to screen coordinates
+                    local s = bar:GetEffectiveScale() / UIParent:GetEffectiveScale()
+                    local left = bar:GetLeft() * s
+                    local top = bar:GetTop() * s
+                    db.individualBarPositions[charKey] = { point = "TOPLEFT", relativePoint = "TOPLEFT", x = left, y = (top - UIParent:GetHeight()) }
+                    pos = db.individualBarPositions[charKey]
+                end
+            end
+
+            bar:SetParent(UIParent)
+            bar:SetMovable(true)
+            bar:SetScale(db.barScale or 1.0)
+            bar:SetAlpha(db.barAlpha or 1.0)
+            bar:SetFrameStrata("MEDIUM")
+            bar:ClearAllPoints()
+            
+            if pos then
+                bar:SetPoint(pos.point, UIParent, pos.relativePoint, pos.x, pos.y)
+            else
+                bar:SetPoint("CENTER", UIParent, "CENTER", 100, 0)
+            end
+        else
+            bar:SetParent(self.masterFrame)
+            bar:SetMovable(false)
+            bar:SetScale(1.0)
+            bar:SetAlpha(1.0)
+            bar:ClearAllPoints()
+            bar:SetPoint("TOPLEFT", 0, currentY)
+        end
+        
         bar:UpdateLayout()
-        bar:ClearAllPoints()
-        bar:SetPoint("TOPLEFT", 4, currentY)
-        bar:Show()
+        bar:Show() -- Ensure visibility AFTER parenting and positioning
+        
+        if not db.breakUpBars then
+            currentY = currentY - bar:GetHeight() - barMargin
+        end
         
         if color then
             bar.nameLabel:SetTextColor(color.r, color.g, color.b)
         end
         self:UpdateBarIcons(bar)
         
-        currentY = currentY - bar:GetHeight() - barMargin
         maxBarWidth = math.max(maxBarWidth, bar:GetWidth())
     end
     
-    if shamanCount > 0 then
-        self.masterFrame:SetHeight(math.abs(currentY) - barMargin + 4)
-        self.masterFrame:SetWidth(maxBarWidth + 8)
+    if not db.breakUpBars then
+        if shamanCount > 0 then
+            self.masterFrame:SetHeight(math.abs(currentY) - barMargin)
+            self.masterFrame:SetWidth(maxBarWidth)
+            self.masterFrame.handle:SetHeight(self.masterFrame:GetHeight())
+        else
+            self.masterFrame:SetHeight(40)
+            self.masterFrame:SetWidth(200)
+        end
     else
-        self.masterFrame:SetHeight(40)
-        self.masterFrame:SetWidth(200)
+        self.masterFrame:Hide()
     end
     
     self:UpdateMacros()
