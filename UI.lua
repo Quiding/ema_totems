@@ -439,7 +439,7 @@ function UI:RefreshBars()
         local isShaman = (class and class:lower() == "shaman") or (EMA_Totems.shamanMembers[characterName] == true)
         
         -- Local player fallback
-        if characterName == EMA_Totems.characterName then
+        if not isShaman and characterName == EMA_Totems.characterName then
             local _, myClass = UnitClass("player")
             if myClass == "SHAMAN" then isShaman = true end
         end
@@ -450,9 +450,11 @@ function UI:RefreshBars()
             if unitClass == "SHAMAN" then isShaman = true end
         end
         
-        -- Database fallback (if they ever selected totems, they are a shaman)
-        if not isShaman and (EMA_Totems.activeTotems[unit] or (db.selectedTotems and (db.selectedTotems[characterName] or db.selectedTotems[unit]))) then
-            isShaman = true
+        -- Database fallback: Only if class is UNKNOWN or NOT a known non-shaman
+        if not isShaman and (not class or class:lower() == "unknown") then
+            if (EMA_Totems.activeTotems[unit] or (db.selectedTotems and (db.selectedTotems[characterName] or db.selectedTotems[unit]))) then
+                isShaman = true
+            end
         end
 
         if isShaman and (isOnline or characterName == EMA_Totems.characterName) then

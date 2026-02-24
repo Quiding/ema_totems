@@ -248,7 +248,7 @@ function EMA_Totems:UpdateTotemForShaman(shamanName, slot, totemID)
         ns.UI:UpdateMyBar()
         self:PushSettingsToTeam()
     else
-        self:EMASendCommandToCharacter(shamanName, "EMATotemsUpdate", slot, totemID)
+        self:EMASendCommandToToon(shamanName, "EMATotemsUpdate", slot, totemID)
     end
 end
 
