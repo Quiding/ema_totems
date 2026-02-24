@@ -268,28 +268,40 @@ local function CreateTotemBar(shamanName, parent)
 
     f.UpdateLayout = function(self)
         if not EMA_Totems.db then return end
-        local size = EMA_Totems.db.iconSize
-        local margin = EMA_Totems.db.iconMargin
-        local showNames = EMA_Totems.db.showNames
-        local onlyTimers = EMA_Totems.db.onlyTimers
-        local nameHeight = showNames and (EMA_Totems.db.fontSize + 2) or 0
+        local db = EMA_Totems.db
+        local size = db.iconSize
+        local margin = db.iconMargin
+        local showNames = db.showNames
+        local onlyTimers = db.onlyTimers
+        local nameHeight = showNames and (db.fontSize + 2) or 0
+        local layout = db.barLayout or "Horizontal"
         
         local hasSeq = self.seqBtn and not onlyTimers
         local numIcons = hasSeq and 5 or 4
         
         ApplyFontStyle(self.nameLabel)
         local nameWidth = showNames and (self.nameLabel:GetStringWidth() + 4) or 0
-        local iconsWidth = (size * numIcons) + (margin * (numIcons - 1))
-        local totalWidth = math.max(nameWidth, iconsWidth)
-        self:SetSize(math.max(1, totalWidth), size + nameHeight)
+        
+        if layout == "Horizontal" then
+            local iconsWidth = (size * numIcons) + (margin * (numIcons - 1))
+            local totalWidth = math.max(nameWidth, iconsWidth)
+            self:SetSize(math.max(1, totalWidth), size + nameHeight)
+        else
+            local iconsHeight = (size * numIcons) + (margin * (numIcons - 1))
+            local totalHeight = iconsHeight + nameHeight
+            self:SetSize(math.max(size, nameWidth), math.max(1, totalHeight))
+        end
 
         -- Handle
-        if EMA_Totems.db.breakUpBars and not EMA_Totems.db.lockBars then
+        if db.breakUpBars and not db.lockBars then
             self.handle:Show()
         else
             self.handle:Hide()
         end
-        self.handle:SetHeight(size + nameHeight)
+        self.handle:SetWidth(10)
+        self.handle:SetHeight(self:GetHeight())
+        self.handle:ClearAllPoints()
+        self.handle:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, 0)
 
         self.nameLabel:ClearAllPoints()
         if showNames then
@@ -305,11 +317,15 @@ local function CreateTotemBar(shamanName, parent)
             local b = self.buttons[slot]
             b:SetSize(size, size)
             b:ClearAllPoints()
-            b:SetPoint("BOTTOMLEFT", (i-1)*(size + margin), 0)
+            if layout == "Horizontal" then
+                b:SetPoint("BOTTOMLEFT", (i-1)*(size + margin), 0)
+            else
+                b:SetPoint("TOPLEFT", 0, -(i-1)*(size + margin) - nameHeight)
+            end
             
             -- Set Font
-            local fontFile = SharedMedia:Fetch("font", EMA_Totems.db.fontStyle)
-            b.timerText:SetFont(fontFile, EMA_Totems.db.timerFontSize or 16, "OUTLINE")
+            local fontFile = SharedMedia:Fetch("font", db.fontStyle)
+            b.timerText:SetFont(fontFile, db.timerFontSize or 16, "OUTLINE")
         end
         
         if self.seqBtn then
@@ -319,7 +335,11 @@ local function CreateTotemBar(shamanName, parent)
                 self.seqBtn:Show()
                 self.seqBtn:SetSize(size, size)
                 self.seqBtn:ClearAllPoints()
-                self.seqBtn:SetPoint("BOTTOMLEFT", 4*(size + margin), 0)
+                if layout == "Horizontal" then
+                    self.seqBtn:SetPoint("BOTTOMLEFT", 4*(size + margin), 0)
+                else
+                    self.seqBtn:SetPoint("TOPLEFT", 0, -4*(size + margin) - nameHeight)
+                end
             end
         end
         ApplySkin(self)
@@ -477,9 +497,11 @@ function UI:RefreshBars()
     for name, bar in pairs(self.teamBars) do bar:Hide() end
 
     local shamanCount = 0
+    local currentX = 0
     local currentY = 0
     local barMargin = EMA_Totems.db.barMargin
-    local maxBarWidth = 0
+    local maxTotalWidth = 0
+    local maxTotalHeight = 0
     
     for _, info in ipairs(shamanList) do
         local characterName = info.name
@@ -525,28 +547,37 @@ function UI:RefreshBars()
             bar:SetScale(1.0)
             bar:SetAlpha(1.0)
             bar:ClearAllPoints()
-            bar:SetPoint("TOPLEFT", 0, currentY)
+            bar:SetPoint("TOPLEFT", currentX, currentY)
         end
         
         bar:UpdateLayout()
         bar:Show() -- Ensure visibility AFTER parenting and positioning
         
         if not db.breakUpBars then
-            currentY = currentY - bar:GetHeight() - barMargin
+            if db.barLayout == "Vertical" then
+                currentX = currentX + bar:GetWidth() + barMargin
+                maxTotalHeight = math.max(maxTotalHeight, bar:GetHeight())
+            else
+                currentY = currentY - bar:GetHeight() - barMargin
+                maxTotalWidth = math.max(maxTotalWidth, bar:GetWidth())
+            end
         end
         
         if color then
             bar.nameLabel:SetTextColor(color.r, color.g, color.b)
         end
         self:UpdateBarIcons(bar)
-        
-        maxBarWidth = math.max(maxBarWidth, bar:GetWidth())
     end
     
     if not db.breakUpBars then
         if shamanCount > 0 then
-            self.masterFrame:SetHeight(math.abs(currentY) - barMargin)
-            self.masterFrame:SetWidth(maxBarWidth)
+            if db.barLayout == "Vertical" then
+                self.masterFrame:SetWidth(currentX - barMargin)
+                self.masterFrame:SetHeight(maxTotalHeight)
+            else
+                self.masterFrame:SetHeight(math.abs(currentY) - barMargin)
+                self.masterFrame:SetWidth(maxTotalWidth)
+            end
             self.masterFrame.handle:SetHeight(self.masterFrame:GetHeight())
         else
             self.masterFrame:SetHeight(40)

@@ -2,6 +2,7 @@ local addonName, ns = ...
 -- Official EMA Module initialization
 local EMA_Totems = LibStub("AceAddon-3.0"):NewAddon("EMA_Totems", "Module-1.0", "AceConsole-3.0", "AceEvent-3.0", "AceTimer-3.0")
 ns.EMA_Totems = EMA_Totems
+EMA_Totems.ns = ns
 
 EMA_Totems.moduleName = "EMA_Totems"
 EMA_Totems.settingsDatabaseName = "EMA_TotemsProfileDB"
@@ -81,6 +82,7 @@ EMA_Totems.settings = {
         lockBars = false,
         barOrder = "RoleAsc",
         showNames = true,
+        barLayout = "Horizontal",
         borderStyle = "Blizzard Tooltip",
         backgroundStyle = "Blizzard Dialog Background",
         fontStyle = "Arial Narrow",
@@ -256,7 +258,35 @@ function EMA_Totems:ChatCommand(input)
     elseif cmd == "refresh" then ns.UI:RefreshBars()
     elseif cmd == "show" then self.db.showBars = true; ns.UI:RefreshBars()
     elseif cmd == "hide" then self.db.showBars = false; ns.UI:RefreshBars()
-    else self:Print("Usage: /et config, /et refresh, /et show, /et hide") end
+    elseif cmd == "test" then self:TestTotems()
+    else self:Print("Usage: /et config, /et refresh, /et show, /et hide, /et test") end
+end
+
+function EMA_Totems:TestTotems()
+    local currentTime = GetTime()
+    for index, characterName in EMAApi.TeamListOrdered() do
+        local isOnline = EMAApi.GetCharacterOnlineStatus(characterName)
+        if (isOnline == true or characterName == self.characterName) then
+            local class, _ = EMAApi.GetClass(characterName)
+            local unit = Ambiguate(characterName, "none")
+            local isShaman = (class and class:lower() == "shaman") or (self.shamanMembers[characterName] == true)
+            if characterName == self.characterName then
+                local _, myClass = UnitClass("player")
+                if myClass == "SHAMAN" then isShaman = true end
+            end
+            
+            if isShaman then
+                local sender = Ambiguate(characterName, "none")
+                self.activeTotems[sender] = self.activeTotems[sender] or {}
+                local slots = {"Fire", "Air", "Water", "Earth"}
+                for _, slot in ipairs(slots) do
+                    self.activeTotems[sender][slot] = { name = "Test Totem", startTime = currentTime, duration = 10, icon = 134400 }
+                end
+            end
+        end
+    end
+    self:Print("Started 10s Test on all totem slots.")
+    if ns.UI then ns.UI:RefreshBars() end
 end
 
 function EMA_Totems:OnEnable()
@@ -411,12 +441,16 @@ function EMA_Totems:SettingsCreate()
     movingTop = movingTop - headingHeight
     self.settingsControl.checkBoxShowBars = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Show Totem Bars", function(w, e, v) self.db.showBars = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - checkBoxHeight
-    self.settingsControl.checkBoxLockBars = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Lock Bars", function(w, e, v) self.db.lockBars = v; self:SettingsRefresh() end)
+    self.settingsControl.checkBoxLockBars = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Lock Bars", function(w, e, v) self.db.lockBars = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - checkBoxHeight
     self.settingsControl.checkBoxShowNames = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Show Character Names", function(w, e, v) self.db.showNames = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - checkBoxHeight
     self.settingsControl.checkBoxBreakUpBars = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Ungrouped Bars (Independent Movement)", function(w, e, v) self.db.breakUpBars = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - checkBoxHeight
+    self.settingsControl.dropdownLayout = EMAHelperSettings:CreateDropdown(self.settingsControl, 450, left, movingTop, "Bar Orientation")
+    self.settingsControl.dropdownLayout:SetList({ ["Horizontal"] = "Horizontal (Icons in a row)", ["Vertical"] = "Vertical (Icons in a column)" })
+    self.settingsControl.dropdownLayout:SetCallback("OnValueChanged", function(w, e, v) self.db.barLayout = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
+    movingTop = movingTop - dropdownHeight - verticalSpacing
     self.settingsControl.buttonResetPositions = EMAHelperSettings:CreateButton(self.settingsControl, headingWidth, left, movingTop, "Reset All Independent Bar Positions", function() 
         self.db.individualBarPositions = {}
         if ns.UI and ns.UI.teamBars then
@@ -576,6 +610,7 @@ function EMA_Totems:SettingsRefresh()
         self.settingsControl.checkBoxSpamMacro:SetDisabled(onlyTimers)
         self.settingsControl.checkBoxLockBars:SetValue(db.lockBars)
         self.settingsControl.checkBoxShowNames:SetValue(db.showNames)
+        self.settingsControl.dropdownLayout:SetValue(db.barLayout or "Horizontal")
         self.settingsControl.checkBoxBreakUpBars:SetValue(db.breakUpBars)
         
         self.settingsControl.sliderScale:SetValue(db.barScale or 1.0)
