@@ -62,24 +62,29 @@ end
 -- -----------------------------------------------------------------------
 
 function EMA_Totems:SaveTeamPreset(presetName)
+    self:Print("DEBUG: SaveTeamPreset called with name: " .. tostring(presetName))
     if not presetName or presetName == "" then 
         self:Print("Error: Please enter a team preset name.")
         return 
     end
     
     local teamData = {}
+    local count = 0
     for index, characterName in EMAApi.TeamListOrdered() do
+        self:Print("DEBUG: Checking character: " .. characterName)
         local totems = self.db.selectedTotems[characterName]
         local sequence = self.db.castSequences[characterName]
         if totems or sequence then
+            self:Print("DEBUG: Found data for: " .. characterName)
             teamData[characterName] = {
                 totems = totems and EMAUtilities:CopyTable(totems) or nil,
                 sequence = sequence
             }
+            count = count + 1
         end
     end
     
-    if next(teamData) == nil then
+    if count == 0 then
         self:Print("Error: No team data found to save.")
         return
     end
@@ -139,6 +144,7 @@ function EMA_Totems:PresetsSettingsCreate()
     self.settingsControlPresets.editBoxPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 300, left, movingTop, "New Preset Name")
     self.settingsControlPresets.buttonSavePreset = EMAHelperSettings:CreateButton(self.settingsControlPresets, 120, left + 310, movingTop, "Save Current", function()
         local name = self.settingsControlPresets.editBoxPresetName.editbox:GetText()
+        self:Print("DEBUG: Single Save button clicked. Name from editbox: " .. tostring(name))
         if name and name ~= "" then
             self:SavePreset(name)
             self.settingsControlPresets.editBoxPresetName.editbox:SetText("")
@@ -176,6 +182,7 @@ function EMA_Totems:PresetsSettingsCreate()
     self.settingsControlPresets.editBoxTeamPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 300, left, movingTop, "New Team Preset Name")
     self.settingsControlPresets.buttonSaveTeamPreset = EMAHelperSettings:CreateButton(self.settingsControlPresets, 120, left + 310, movingTop, "Save Current Team", function()
         local name = self.settingsControlPresets.editBoxTeamPresetName.editbox:GetText()
+        self:Print("DEBUG: Team Save button clicked. Name from editbox: " .. tostring(name))
         if name and name ~= "" then
             self:SaveTeamPreset(name)
             self.settingsControlPresets.editBoxTeamPresetName.editbox:SetText("")
