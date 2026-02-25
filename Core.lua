@@ -29,7 +29,7 @@ local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
 EMA_Totems.parentDisplayName = "Class"
 EMA_Totems.moduleDisplayName = "Totems"
 EMA_Totems.moduleIcon = "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga"
-EMA_Totems.moduleOrder = 10
+EMA_Totems.moduleOrder = 80
 
 _G["BINDING_HEADER_EMATOTEMS"] = "EMA Totems"
 _G["BINDING_NAME_EMATOTEMSSEQUENCE"] = "EMA: Cast Totem Sequence"
@@ -428,7 +428,7 @@ function EMA_Totems:SettingsCreate()
     self.settingsControlClass = {}
     local EMAHelperSettings = LibStub("EMAHelperSettings-1.0")
     EMAHelperSettings:CreateSettings(self.settingsControlClass, "Class", "Class", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\TeamCore.tga", 5)
-    EMAHelperSettings:CreateSettings(self.settingsControl, "Totems", "Class", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga", 10)
+    EMAHelperSettings:CreateSettings(self.settingsControl, "Totems", "Class", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga", 80)
     
     local top, left = EMAHelperSettings:TopOfSettings(), EMAHelperSettings:LeftOfSettings()
     local headingHeight, headingWidth = EMAHelperSettings:HeadingHeight(), EMAHelperSettings:HeadingWidth(true)
