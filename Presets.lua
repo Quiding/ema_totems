@@ -72,14 +72,23 @@ function EMA_Totems:SaveTeamPreset(presetName)
     local teamData = {}
     local count = 0
     for index, characterName in EMAApi.TeamListOrdered() do
-        local totems = self.db.selectedTotems[characterName]
-        local sequence = self.db.castSequences[characterName]
-        if totems or sequence then
-            teamData[characterName] = {
-                totems = totems and EMAUtilities:CopyTable(totems) or nil,
-                sequence = sequence
-            }
-            count = count + 1
+        local class, _ = EMAApi.GetClass(characterName)
+        local isShaman = (class and class:lower() == "shaman") or (self.shamanMembers[characterName] == true)
+        if not isShaman and characterName == self.characterName then
+            local _, myClass = UnitClass("player")
+            if myClass == "SHAMAN" then isShaman = true end
+        end
+
+        if isShaman then
+            local totems = self.db.selectedTotems[characterName]
+            local sequence = self.db.castSequences[characterName]
+            if totems or sequence then
+                teamData[characterName] = {
+                    totems = totems and EMAUtilities:CopyTable(totems) or nil,
+                    sequence = sequence
+                }
+                count = count + 1
+            end
         end
     end
     
@@ -382,7 +391,18 @@ function EMA_Totems:SettingsTeamMemberListScrollRefresh()
 
     local members = {}
     for index, characterName in EMAApi.TeamListOrdered() do
-        table.insert(members, characterName)
+        local class, _ = EMAApi.GetClass(characterName)
+        local isShaman = (class and class:lower() == "shaman") or (self.shamanMembers[characterName] == true)
+        
+        -- Fallback for local player if EMA doesn't know class yet
+        if not isShaman and characterName == self.characterName then
+            local _, myClass = UnitClass("player")
+            if myClass == "SHAMAN" then isShaman = true end
+        end
+
+        if isShaman then
+            table.insert(members, characterName)
+        end
     end
     
     FauxScrollFrame_Update(self.settingsControlPresets.teamMemberList.listScrollFrame, #members, self.settingsControlPresets.teamMemberList.rowsToDisplay, self.settingsControlPresets.teamMemberList.rowHeight)
