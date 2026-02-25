@@ -2,12 +2,25 @@ local addonName, ns = ...
 local EMA_Totems = ns.EMA_Totems
 
 function EMA_Totems_Presets_Migration(db)
-    if not db or not db.teamPresets then return end
+    if not db then return end
     local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
-    for name, data in pairs(db.teamPresets) do
-        if not data.members then
-            local members = EMAUtilities:CopyTable(data)
-            db.teamPresets[name] = { members = members, icon = "Interface\\Icons\\Spell_Totem_WardOfDraining" }
+    -- Team Presets Migration
+    if db.teamPresets then
+        for name, data in pairs(db.teamPresets) do
+            if not data.members then
+                local members = EMAUtilities:CopyTable(data)
+                db.teamPresets[name] = { members = members, icon = "Interface\\Icons\\Spell_Totem_WardOfDraining" }
+            end
+        end
+    end
+    -- Individual Presets Migration (ensure they have an icon field)
+    if db.presets then
+        for charName, presets in pairs(db.presets) do
+            for presetName, data in pairs(presets) do
+                if not data.icon then
+                    data.icon = "Interface\\Icons\\Spell_Totem_WardOfDraining"
+                end
+            end
         end
     end
 end
@@ -18,7 +31,7 @@ end
 
 function EMA_Totems:SaveIndividualPreset(charName, presetName)
     local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
-    if not charName or charName == "" then self:Print("Error: No character selected."); return end
+    if not charName or charName == "" or charName == "Select Shaman..." then self:Print("Error: No character selected."); return end
     if not presetName or presetName == "" then self:Print("Error: Please enter a preset name."); return end
     
     local totems = self.db.selectedTotems[charName]
@@ -32,7 +45,8 @@ function EMA_Totems:SaveIndividualPreset(charName, presetName)
     if not self.db.presets[charName] then self.db.presets[charName] = {} end
     self.db.presets[charName][presetName] = {
         totems = totems and EMAUtilities:CopyTable(totems) or nil,
-        sequence = sequence
+        sequence = sequence,
+        icon = "Interface\\Icons\\Spell_Totem_WardOfDraining"
     }
     self:Print(string.format("Individual preset '%s' saved for %s", presetName, Ambiguate(charName, "short")))
     self:SettingsRefresh()
@@ -43,6 +57,7 @@ function EMA_Totems:ApplyIndividualPreset(charName, presetName)
     local preset = charPresets and charPresets[presetName]
     if not preset then return end
     
+    local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
     if preset.totems then self.db.selectedTotems[charName] = EMAUtilities:CopyTable(preset.totems) end
     if preset.sequence then self.db.castSequences[charName] = preset.sequence end
     
@@ -108,6 +123,24 @@ function EMA_Totems:DeleteTeamPreset(presetName)
 end
 
 -- -----------------------------------------------------------------------
+-- UTILS
+-- -----------------------------------------------------------------------
+
+local function FindIconRobust(search)
+    if tonumber(search) then return tonumber(search) end; local sLower = search:lower()
+    local name, _, icon = GetSpellInfo(search); if name and name:lower() == sLower then return icon end
+    for element, list in pairs(ns.totemLists) do for _, id in ipairs(list) do local tName, _, tIcon = GetSpellInfo(id); if tName and tName:lower() == sLower then return tIcon end end end
+    local _, _, _, _, _, _, _, _, _, iIcon = GetItemInfo(search); if iIcon then return iIcon end; return nil
+end
+
+local function GetTotemListForDropdown(element)
+    local list = ns.totemLists[element]
+    local dropdownList = { [""] = "None" }
+    for _, id in ipairs(list) do local name = GetSpellInfo(id); dropdownList[id] = name or ("ID: " .. id) end
+    return dropdownList
+end
+
+-- -----------------------------------------------------------------------
 -- INDIVIDUAL PRESETS UI
 -- -----------------------------------------------------------------------
 
@@ -125,6 +158,7 @@ function EMA_Totems:IndividualPresetsSettingsCreate()
     self.settingsControlIndividualPresets.dropdownSelectMember = EMAHelperSettings:CreateDropdown(self.settingsControlIndividualPresets, 300, left, movingTop, "Select Shaman to Manage")
     self.settingsControlIndividualPresets.dropdownSelectMember:SetCallback("OnValueChanged", function(w, e, v) 
         self.selectedShamanForIndividualPresets = v
+        self.selectedIndividualPresetToEdit = nil
         self:SettingsRefresh()
     end)
     movingTop = movingTop - 45
@@ -137,13 +171,66 @@ function EMA_Totems:IndividualPresetsSettingsCreate()
     movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight() - 15
     
     self.settingsControlIndividualPresets.presetList = {
-        listFrameName = "EMATotemsIndividualPresetsSettingsListFrame", parentFrame = self.settingsControlIndividualPresets.widgetSettings.content, listTop = movingTop, listLeft = left, listWidth = headingWidth, rowHeight = 25, rowsToDisplay = 15, columnsToDisplay = 3,
+        listFrameName = "EMATotemsIndividualPresetsSettingsListFrame", parentFrame = self.settingsControlIndividualPresets.widgetSettings.content, listTop = movingTop, listLeft = left, listWidth = headingWidth, rowHeight = 35, rowsToDisplay = 5, columnsToDisplay = 3,
         columnInformation = { { width = 60, alignment = "LEFT" }, { width = 20, alignment = "CENTER" }, { width = 20, alignment = "CENTER" } },
         scrollRefreshCallback = function() self:SettingsIndividualPresetListScrollRefresh() end, 
         rowClickCallback = function(obj, rowNumber, columnNumber) self:SettingsIndividualPresetListRowClick(rowNumber, columnNumber) end
     }
     EMAHelperSettings:CreateScrollList(self.settingsControlIndividualPresets.presetList)
-    movingTop = movingTop - self.settingsControlIndividualPresets.presetList.listHeight - 10
+    movingTop = movingTop - self.settingsControlIndividualPresets.presetList.listHeight - 25
+
+    EMAHelperSettings:CreateHeading(self.settingsControlIndividualPresets, "Individual Preset Editor", movingTop, false)
+    movingTop = movingTop - headingHeight - 15
+
+    self.settingsControlIndividualPresets.dropdownEditPreset = EMAHelperSettings:CreateDropdown(self.settingsControlIndividualPresets, 200, left, movingTop, "Select Preset to Edit")
+    self.settingsControlIndividualPresets.dropdownEditPreset:SetCallback("OnValueChanged", function(w, e, v) 
+        self.selectedIndividualPresetToEdit = v
+        self:SettingsRefresh()
+    end)
+    
+    self.settingsControlIndividualPresets.displayPresetIcon = EMAHelperSettings:Icon(self.settingsControlIndividualPresets, 42, 42, "Interface\\Icons\\INV_Misc_QuestionMark", left + 220, movingTop, "Icon", function() self:Print("Drag a totem, spell, or item here.") end, "Drag a spell or item here.")
+    local iconFrame = self.settingsControlIndividualPresets.displayPresetIcon.frame
+    iconFrame:SetScript("OnReceiveDrag", function()
+        if not self.selectedShamanForIndividualPresets or not self.selectedIndividualPresetToEdit then return end
+        local type, id, info = GetCursorInfo(); local icon
+        if type == "spell" then icon = select(3, GetSpellInfo(id, info)) elseif type == "item" then icon = select(10, GetItemInfo(id)) end
+        if icon then self.db.presets[self.selectedShamanForIndividualPresets][self.selectedIndividualPresetToEdit].icon = icon; ClearCursor(); self:SettingsRefresh() end
+    end)
+    iconFrame:HookScript("OnMouseUp", function() if not self.selectedShamanForIndividualPresets or not self.selectedIndividualPresetToEdit then return end; local type, id, info = GetCursorInfo(); if type == "spell" or type == "item" then iconFrame:GetScript("OnReceiveDrag")() end end)
+
+    self.settingsControlIndividualPresets.editBoxPresetIcon = EMAHelperSettings:CreateEditBox(self.settingsControlIndividualPresets, 150, left + 350, movingTop, "Icon Name/ID")
+    self.settingsControlIndividualPresets.editBoxPresetIcon:SetCallback("OnEnterPressed", function(w, e, v)
+        if not self.selectedShamanForIndividualPresets or not self.selectedIndividualPresetToEdit then return end
+        local icon = FindIconRobust(v:trim()); if icon then self.db.presets[self.selectedShamanForIndividualPresets][self.selectedIndividualPresetToEdit].icon = icon; self:SettingsRefresh() else self:Print("Error: Icon not found.") end
+    end)
+    movingTop = movingTop - 65
+
+    local dropdownWidth = (headingWidth - 20) / 2
+    self.settingsControlIndividualPresets.dropdownFire = EMAHelperSettings:CreateDropdown(self.settingsControlIndividualPresets, dropdownWidth, left, movingTop, "Fire Totem")
+    self.settingsControlIndividualPresets.dropdownAir = EMAHelperSettings:CreateDropdown(self.settingsControlIndividualPresets, dropdownWidth, left + dropdownWidth + 10, movingTop, "Air Totem")
+    movingTop = movingTop - 50
+    self.settingsControlIndividualPresets.dropdownWater = EMAHelperSettings:CreateDropdown(self.settingsControlIndividualPresets, dropdownWidth, left, movingTop, "Water Totem")
+    self.settingsControlIndividualPresets.dropdownEarth = EMAHelperSettings:CreateDropdown(self.settingsControlIndividualPresets, dropdownWidth, left + dropdownWidth + 10, movingTop, "Earth Totem")
+    movingTop = movingTop - 50
+    self.settingsControlIndividualPresets.editBoxSequence = EMAHelperSettings:CreateEditBox(self.settingsControlIndividualPresets, headingWidth, left, movingTop, "Cast Sequence")
+    movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight() - 15
+
+    local function UpdateIndividualData()
+        local char = self.selectedShamanForIndividualPresets
+        local presetName = self.selectedIndividualPresetToEdit
+        if not char or not presetName then return end
+        local preset = self.db.presets[char] and self.db.presets[char][presetName]
+        if not preset then return end
+        preset.totems = preset.totems or {}
+        preset.totems.Fire = self.settingsControlIndividualPresets.dropdownFire:GetValue()
+        preset.totems.Air = self.settingsControlIndividualPresets.dropdownAir:GetValue()
+        preset.totems.Water = self.settingsControlIndividualPresets.dropdownWater:GetValue()
+        preset.totems.Earth = self.settingsControlIndividualPresets.dropdownEarth:GetValue()
+        preset.sequence = self.settingsControlIndividualPresets.editBoxSequence.editbox:GetText()
+        self:SettingsIndividualPresetListScrollRefresh()
+    end
+    self.settingsControlIndividualPresets.dropdownFire:SetCallback("OnValueChanged", UpdateIndividualData); self.settingsControlIndividualPresets.dropdownAir:SetCallback("OnValueChanged", UpdateIndividualData); self.settingsControlIndividualPresets.dropdownWater:SetCallback("OnValueChanged", UpdateIndividualData); self.settingsControlIndividualPresets.dropdownEarth:SetCallback("OnValueChanged", UpdateIndividualData); self.settingsControlIndividualPresets.editBoxSequence:SetCallback("OnEnterPressed", UpdateIndividualData)
+
     self.settingsControlIndividualPresets.widgetSettings.content:SetHeight(-movingTop + 20)
 end
 
@@ -155,13 +242,18 @@ function EMA_Totems:SettingsIndividualPresetListScrollRefresh()
         for name, _ in pairs(self.db.presets[charName]) do table.insert(presets, name) end
         table.sort(presets)
     end
-    FauxScrollFrame_Update(self.settingsControlIndividualPresets.presetList.listScrollFrame, #presets, self.settingsControlIndividualPresets.presetList.rowsToDisplay, self.settingsControlIndividualPresets.presetList.rowHeight)
-    local offset = FauxScrollFrame_GetOffset(self.settingsControlIndividualPresets.presetList.listScrollFrame)
-    for i = 1, self.settingsControlIndividualPresets.presetList.rowsToDisplay do
-        local row = self.settingsControlIndividualPresets.presetList.rows[i]
+    local list = self.settingsControlIndividualPresets.presetList
+    FauxScrollFrame_Update(list.listScrollFrame, #presets, list.rowsToDisplay, list.rowHeight)
+    local offset = FauxScrollFrame_GetOffset(list.listScrollFrame)
+    for i = 1, list.rowsToDisplay do
+        local row = list.rows[i]
         local dataIndex = i + offset
         if dataIndex <= #presets then
             local name = presets[dataIndex]
+            local preset = self.db.presets[charName][name]
+            if not row.presetIcon then row.presetIcon = row.columns[1]:CreateTexture(nil, "ARTWORK"); row.presetIcon:SetSize(list.rowHeight - 4, list.rowHeight - 4); row.presetIcon:SetPoint("LEFT", 4, 0); row.presetIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92) end
+            row.presetIcon:SetTexture(preset.icon or "Interface\\Icons\\Spell_Totem_WardOfDraining")
+            row.columns[1].textString:ClearAllPoints(); row.columns[1].textString:SetPoint("LEFT", list.rowHeight + 4, 0); row.columns[1].textString:SetPoint("RIGHT", 0, 0)
             row.columns[1].textString:SetText(name); row.columns[2].textString:SetText("|cff00ff00[Apply]|r"); row.columns[3].textString:SetText("|cffff0000[Delete]|r")
             row.presetName = name; row:Show()
         else row:Hide() end
@@ -223,12 +315,6 @@ function EMA_Totems:TeamPresetsSettingsCreate()
     self.settingsControlTeamPresets.editBoxPresetIcon = EMAHelperSettings:CreateEditBox(self.settingsControlTeamPresets, 150, left + 350, movingTop, "Icon Name/ID")
     self.settingsControlTeamPresets.editBoxPresetIcon:SetCallback("OnEnterPressed", function(w, e, v)
         if not self.selectedTeamPresetToEdit then return end
-        local function FindIconRobust(search)
-            if tonumber(search) then return tonumber(search) end; local sLower = search:lower()
-            local name, _, icon = GetSpellInfo(search); if name and name:lower() == sLower then return icon end
-            for element, list in pairs(ns.totemLists) do for _, id in ipairs(list) do local tName, _, tIcon = GetSpellInfo(id); if tName and tName:lower() == sLower then return tIcon end end end
-            local _, _, _, _, _, _, _, _, _, iIcon = GetItemInfo(search); if iIcon then return iIcon end; return nil
-        end
         local icon = FindIconRobust(v:trim()); if icon then self.db.teamPresets[self.selectedTeamPresetToEdit].icon = icon; self:SettingsRefresh() else self:Print("Error: Icon not found.") end
     end)
     movingTop = movingTop - 65
@@ -339,13 +425,6 @@ function EMA_Totems:SettingsTeamMemberListRowClick(rowNumber, columnNumber)
     self.selectedMemberToEdit = row.memberName; self:SettingsRefresh()
 end
 
-local function GetTotemListForDropdown(element)
-    local list = ns.totemLists[element]
-    local dropdownList = { [""] = "None" }
-    for _, id in ipairs(list) do local name = GetSpellInfo(id); dropdownList[id] = name or ("ID: " .. id) end
-    return dropdownList
-end
-
 function EMA_Totems:SettingsRefreshPresets()
     if self.settingsControlIndividualPresets then
         local shamans = { [""] = "Select Shaman..." }
@@ -357,6 +436,28 @@ function EMA_Totems:SettingsRefreshPresets()
         end
         self.settingsControlIndividualPresets.dropdownSelectMember:SetList(shamans)
         self.settingsControlIndividualPresets.dropdownSelectMember:SetValue(self.selectedShamanForIndividualPresets or "")
+        
+        local charName = self.selectedShamanForIndividualPresets
+        local individualPresetList = {}
+        if charName and self.db.presets[charName] then
+            for name, _ in pairs(self.db.presets[charName]) do individualPresetList[name] = name end
+        end
+        self.settingsControlIndividualPresets.dropdownEditPreset:SetList(individualPresetList)
+        self.settingsControlIndividualPresets.dropdownEditPreset:SetValue(self.selectedIndividualPresetToEdit)
+
+        if charName and self.selectedIndividualPresetToEdit then
+            local preset = self.db.presets[charName][self.selectedIndividualPresetToEdit]
+            self.settingsControlIndividualPresets.displayPresetIcon:SetImage(preset.icon or "Interface\\Icons\\Spell_Totem_WardOfDraining")
+            self.settingsControlIndividualPresets.editBoxPresetIcon:SetDisabled(false)
+            self.settingsControlIndividualPresets.dropdownFire:SetList(GetTotemListForDropdown("Fire")); self.settingsControlIndividualPresets.dropdownAir:SetList(GetTotemListForDropdown("Air")); self.settingsControlIndividualPresets.dropdownWater:SetList(GetTotemListForDropdown("Water")); self.settingsControlIndividualPresets.dropdownEarth:SetList(GetTotemListForDropdown("Earth"))
+            self.settingsControlIndividualPresets.dropdownFire:SetValue(preset.totems and preset.totems.Fire or ""); self.settingsControlIndividualPresets.dropdownAir:SetValue(preset.totems and preset.totems.Air or ""); self.settingsControlIndividualPresets.dropdownWater:SetValue(preset.totems and preset.totems.Water or ""); self.settingsControlIndividualPresets.dropdownEarth:SetValue(preset.totems and preset.totems.Earth or ""); self.settingsControlIndividualPresets.editBoxSequence:SetText(preset.sequence or "Fire, Air, Water, Earth")
+            self.settingsControlIndividualPresets.dropdownFire:SetDisabled(false); self.settingsControlIndividualPresets.dropdownAir:SetDisabled(false); self.settingsControlIndividualPresets.dropdownWater:SetDisabled(false); self.settingsControlIndividualPresets.dropdownEarth:SetDisabled(false); self.settingsControlIndividualPresets.editBoxSequence:SetDisabled(false)
+        else
+            self.settingsControlIndividualPresets.displayPresetIcon:SetImage("Interface\\Icons\\INV_Misc_QuestionMark")
+            self.settingsControlIndividualPresets.editBoxPresetIcon:SetDisabled(true)
+            self.settingsControlIndividualPresets.dropdownFire:SetDisabled(true); self.settingsControlIndividualPresets.dropdownAir:SetDisabled(true); self.settingsControlIndividualPresets.dropdownWater:SetDisabled(true); self.settingsControlIndividualPresets.dropdownEarth:SetDisabled(true); self.settingsControlIndividualPresets.editBoxSequence:SetDisabled(true)
+        end
+        self.settingsControlIndividualPresets.editBoxPresetIcon.editbox:SetText("")
         self:SettingsIndividualPresetListScrollRefresh()
     end
     
