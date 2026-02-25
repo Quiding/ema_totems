@@ -381,29 +381,34 @@ local function CreateTotemBar(shamanName, parent)
         local nameWidth = showNames and (self.nameLabel:GetStringWidth() + 4) or 0
         
         local iconsBoundingSize = (size * numIcons) + (margin * (numIcons - 1))
+        local nameOffsetX, nameOffsetY = 0, 0
+        local iconIdx = 0
         
+        -- Individual Preset Button
+        if hasPreset then
+            self.presetBtn:Show(); self.presetBtn:SetSize(size, size); self.presetBtn:ClearAllPoints()
+            if layout == "Horizontal" then 
+                self.presetBtn:SetPoint("TOPLEFT", iconIdx*(size + margin), -nameHeight)
+                if db.presetHandlesOnHover then nameOffsetX = size + margin end
+            else 
+                self.presetBtn:SetPoint("TOPLEFT", 0, -iconIdx*(size + margin) - nameHeight)
+                if db.presetHandlesOnHover then nameOffsetY = -(size + margin) end
+            end
+            iconIdx = iconIdx + 1
+            if db.presetHandlesOnHover then self.presetBtn:SetAlpha(0) else self.presetBtn:SetAlpha(1) end
+            -- Scale the 'P' text
+            self.presetBtn.text:SetFont(SharedMedia:Fetch("font", db.fontStyle or "Arial Narrow"), size * 0.7, "OUTLINE")
+        else self.presetBtn:Hide() end
+
         if layout == "Horizontal" then
-            self:SetSize(math.max(1, math.max(nameWidth, iconsBoundingSize)), size + nameHeight)
+            self:SetSize(math.max(1, math.max(nameWidth + nameOffsetX, iconsBoundingSize)), size + nameHeight)
         else
             self:SetSize(math.max(size, nameWidth), iconsBoundingSize + nameHeight)
         end
 
         -- Handle
         self.handle:SetShown(db.breakUpBars and not db.lockBars); self.handle:SetWidth(10); self.handle:SetHeight(self:GetHeight()); self.handle:ClearAllPoints(); self.handle:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, 0)
-        self.nameLabel:ClearAllPoints(); if showNames then self.nameLabel:Show(); self.nameLabel:SetJustifyH("LEFT"); self.nameLabel:SetPoint("TOPLEFT", 0, 0) else self.nameLabel:Hide() end
-
-        local iconIdx = 0
-        
-        -- Individual Preset Button
-        if hasPreset then
-            self.presetBtn:Show(); self.presetBtn:SetSize(size, size); self.presetBtn:ClearAllPoints()
-            if layout == "Horizontal" then self.presetBtn:SetPoint("TOPLEFT", iconIdx*(size + margin), -nameHeight)
-            else self.presetBtn:SetPoint("TOPLEFT", 0, -iconIdx*(size + margin) - nameHeight) end
-            iconIdx = iconIdx + 1
-            if db.presetHandlesOnHover then self.presetBtn:SetAlpha(0) else self.presetBtn:SetAlpha(1) end
-            -- Scale the 'P' text
-            self.presetBtn.text:SetFont(SharedMedia:Fetch("font", db.fontStyle or "Arial Narrow"), size * 0.7, "OUTLINE")
-        else self.presetBtn:Hide() end
+        self.nameLabel:ClearAllPoints(); if showNames then self.nameLabel:Show(); self.nameLabel:SetJustifyH("LEFT"); self.nameLabel:SetPoint("TOPLEFT", nameOffsetX, nameOffsetY) else self.nameLabel:Hide() end
 
         local slots = {"Fire", "Air", "Water", "Earth"}
         for i, slot in ipairs(slots) do
