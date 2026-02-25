@@ -509,8 +509,8 @@ function UI:Initialize()
         self.masterFrame.teamPresetBtn:SetBackdropColor(0, 0, 0, 1); self.masterFrame.teamPresetBtn:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
         self.masterFrame.teamPresetBtn.text = self.masterFrame.teamPresetBtn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
         self.masterFrame.teamPresetBtn.text:SetPoint("CENTER", 0, 0)
-        self.masterFrame.teamPresetBtn.text:SetText("P")
-        self.masterFrame.teamPresetBtn.text:SetTextColor(1, 1, 1, 1)
+        self.masterFrame.teamPresetBtn.text:SetText("TP")
+        self.masterFrame.teamPresetBtn.text:SetTextColor(1, 0.8, 0, 1) -- Gold for Team
         
         self.masterFrame.teamPresetBtn:SetScript("OnClick", function() ShowPresetSelector(self.masterFrame.teamPresetBtn, nil, true) end)
         self.masterFrame.teamPresetBtn:SetScript("OnEnter", function() 
@@ -644,7 +644,7 @@ function UI:RefreshBars()
     if db.showPresets and db.showTeamPresetHandle then
         local pSize = math.max(16, db.iconSize * 0.8)
         self.masterFrame.teamPresetBtn:SetSize(pSize, pSize)
-        self.masterFrame.teamPresetBtn.text:SetFont(SharedMedia:Fetch("font", db.fontStyle or "Arial Narrow"), pSize * 0.7, "OUTLINE")
+        self.masterFrame.teamPresetBtn.text:SetFont(SharedMedia:Fetch("font", db.fontStyle or "Arial Narrow"), pSize * 0.6, "OUTLINE")
         
         if db.breakUpBars then
             -- Find first shaman bar that we are about to show
