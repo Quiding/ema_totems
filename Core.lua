@@ -26,10 +26,10 @@ EMA_Totems.lastUsedTotems = {}
 local L = LibStub("AceLocale-3.0"):GetLocale("Core")
 local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
 
-EMA_Totems.parentDisplayName = "Buffs & Cooldowns"
+EMA_Totems.parentDisplayName = "Totems"
 EMA_Totems.moduleDisplayName = "Totems"
 EMA_Totems.moduleIcon = "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga"
-EMA_Totems.moduleOrder = 13
+EMA_Totems.moduleOrder = 7
 
 _G["BINDING_HEADER_EMATOTEMS"] = "EMA Totems"
 _G["BINDING_NAME_EMATOTEMSSEQUENCE"] = "EMA: Cast Totem Sequence"
@@ -437,8 +437,8 @@ function EMA_Totems:SettingsCreate()
     self.settingsControl = {}
     local EMAHelperSettings = LibStub("EMAHelperSettings-1.0")
     
-    -- Create Totems under Buffs & Cooldowns
-    EMAHelperSettings:CreateSettings(self.settingsControl, "Totems", "Buffs & Cooldowns", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga", 13)
+    -- Create Totems as its own parent category below Buffs & Cooldowns
+    EMAHelperSettings:CreateSettings(self.settingsControl, "Totems", "Totems", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga", 7)
     
     local top, left = EMAHelperSettings:TopOfSettings(), EMAHelperSettings:LeftOfSettings()
     local headingHeight, headingWidth = EMAHelperSettings:HeadingHeight(), EMAHelperSettings:HeadingWidth(true)
