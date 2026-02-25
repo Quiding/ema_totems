@@ -157,7 +157,7 @@ function EMA_Totems:IndividualPresetsSettingsCreate()
     self.settingsControlIndividualPresets = {}
     local EMAHelperSettings = LibStub("EMAHelperSettings-1.0")
     
-    EMAHelperSettings:CreateSettings(self.settingsControlIndividualPresets, "Individual Presets", "Totems", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga", 81)
+    EMAHelperSettings:CreateSettings(self.settingsControlIndividualPresets, "Individual Presets", "Totems", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga", 14)
     
     local top, left = EMAHelperSettings:TopOfSettings(), EMAHelperSettings:LeftOfSettings()
     local headingHeight, headingWidth = EMAHelperSettings:HeadingHeight(), EMAHelperSettings:HeadingWidth(true)
@@ -249,7 +249,7 @@ function EMA_Totems:TeamPresetsSettingsCreate()
     self.settingsControlTeamPresets = {}
     local EMAHelperSettings = LibStub("EMAHelperSettings-1.0")
     
-    EMAHelperSettings:CreateSettings(self.settingsControlTeamPresets, "Team Presets", "Totems", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\TeamCore.tga", 82)
+    EMAHelperSettings:CreateSettings(self.settingsControlTeamPresets, "Team Presets", "Totems", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\TeamCore.tga", 15)
     
     local top, left = EMAHelperSettings:TopOfSettings(), EMAHelperSettings:LeftOfSettings()
     local headingHeight, headingWidth = EMAHelperSettings:HeadingHeight(), EMAHelperSettings:HeadingWidth(true)
