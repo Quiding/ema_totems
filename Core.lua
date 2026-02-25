@@ -560,7 +560,8 @@ function EMA_Totems:SettingsCreate()
     movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight()
 
     self:EMAModuleInitialize(self.settingsControl.widgetSettings.frame)
-    self:PresetsSettingsCreate()
+    self:IndividualPresetsSettingsCreate()
+    self:TeamPresetsSettingsCreate()
     self:SettingsRefresh()
     self.settingsControl.widgetSettings.content:SetHeight(-movingTop + 20)
     

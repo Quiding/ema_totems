@@ -150,77 +150,129 @@ function EMA_Totems:DeleteTeamPreset(presetName)
 end
 
 -- -----------------------------------------------------------------------
--- PRESET SETTINGS UI
+-- INDIVIDUAL PRESETS UI
 -- -----------------------------------------------------------------------
 
-function EMA_Totems:PresetsSettingsCreate()
-    EMA_Totems_Presets_Migration(self.db)
-    self.settingsControlPresets = {}
+function EMA_Totems:IndividualPresetsSettingsCreate()
+    self.settingsControlIndividualPresets = {}
     local EMAHelperSettings = LibStub("EMAHelperSettings-1.0")
     
-    -- Create settings frames
-    EMAHelperSettings:CreateSettings(self.settingsControlPresets, "Totem Presets", "Class", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga", 81)
+    EMAHelperSettings:CreateSettings(self.settingsControlIndividualPresets, "Totem Presets (Individual)", "Class", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga", 81)
     
     local top, left = EMAHelperSettings:TopOfSettings(), EMAHelperSettings:LeftOfSettings()
     local headingHeight, headingWidth = EMAHelperSettings:HeadingHeight(), EMAHelperSettings:HeadingWidth(true)
     local movingTop = top
     
-    EMAHelperSettings:CreateHeading(self.settingsControlPresets, "Manage Totem Presets", movingTop, false)
+    EMAHelperSettings:CreateHeading(self.settingsControlIndividualPresets, "Manage Individual Totem Presets", movingTop, false)
     movingTop = movingTop - headingHeight - 10
     
-    -- Save Preset UI
-    self.settingsControlPresets.editBoxPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 300, left, movingTop, "New Preset Name")
-    self.settingsControlPresets.buttonSavePreset = EMAHelperSettings:CreateButton(self.settingsControlPresets, 80, left + 310, movingTop - 20, "Save", function()
-        local name = self.settingsControlPresets.editBoxPresetName.editbox:GetText()
+    self.settingsControlIndividualPresets.editBoxPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlIndividualPresets, 300, left, movingTop, "New Preset Name")
+    self.settingsControlIndividualPresets.buttonSavePreset = EMAHelperSettings:CreateButton(self.settingsControlIndividualPresets, 80, left + 310, movingTop - 20, "Save", function()
+        local name = self.settingsControlIndividualPresets.editBoxPresetName.editbox:GetText()
         if name and name ~= "" then
             self:SavePreset(name)
-            self.settingsControlPresets.editBoxPresetName.editbox:SetText("")
+            self.settingsControlIndividualPresets.editBoxPresetName.editbox:SetText("")
         else
             self:Print("Error: Please enter a name for the preset.")
         end
     end)
     movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight() - 15
     
-    -- Preset List
-    self.settingsControlPresets.presetList = {
-        listFrameName = "EMATotemsPresetsSettingsListFrame", 
-        parentFrame = self.settingsControlPresets.widgetSettings.content, 
+    self.settingsControlIndividualPresets.presetList = {
+        listFrameName = "EMATotemsIndividualPresetsSettingsListFrame", 
+        parentFrame = self.settingsControlIndividualPresets.widgetSettings.content, 
         listTop = movingTop, 
         listLeft = left, 
         listWidth = headingWidth, 
         rowHeight = 25, 
-        rowsToDisplay = 5, 
+        rowsToDisplay = 15, 
         columnsToDisplay = 3,
         columnInformation = {
             { width = 60, alignment = "LEFT" },
             { width = 20, alignment = "CENTER" },
             { width = 20, alignment = "CENTER" }
         },
-        scrollRefreshCallback = function() self:SettingsPresetListScrollRefresh() end, 
-        rowClickCallback = function(obj, rowNumber, columnNumber) self:SettingsPresetListRowClick(rowNumber, columnNumber) end
+        scrollRefreshCallback = function() self:SettingsIndividualPresetListScrollRefresh() end, 
+        rowClickCallback = function(obj, rowNumber, columnNumber) self:SettingsIndividualPresetListRowClick(rowNumber, columnNumber) end
     }
-    EMAHelperSettings:CreateScrollList(self.settingsControlPresets.presetList)
-    movingTop = movingTop - self.settingsControlPresets.presetList.listHeight - 25
+    EMAHelperSettings:CreateScrollList(self.settingsControlIndividualPresets.presetList)
+    movingTop = movingTop - self.settingsControlIndividualPresets.presetList.listHeight - 10
 
-    -- Team Preset UI
-    EMAHelperSettings:CreateHeading(self.settingsControlPresets, "Manage Team Presets", movingTop, false)
+    self.settingsControlIndividualPresets.widgetSettings.content:SetHeight(-movingTop + 20)
+end
+
+function EMA_Totems:SettingsIndividualPresetListScrollRefresh()
+    if not self.settingsControlIndividualPresets or not self.settingsControlIndividualPresets.presetList then return end
+    
+    local presets = {}
+    for name, _ in pairs(self.db.presets) do
+        table.insert(presets, name)
+    end
+    table.sort(presets)
+    
+    FauxScrollFrame_Update(self.settingsControlIndividualPresets.presetList.listScrollFrame, #presets, self.settingsControlIndividualPresets.presetList.rowsToDisplay, self.settingsControlIndividualPresets.presetList.rowHeight)
+    local offset = FauxScrollFrame_GetOffset(self.settingsControlIndividualPresets.presetList.listScrollFrame)
+    
+    for i = 1, self.settingsControlIndividualPresets.presetList.rowsToDisplay do
+        local row = self.settingsControlIndividualPresets.presetList.rows[i]
+        local dataIndex = i + offset
+        if dataIndex <= #presets then
+            local name = presets[dataIndex]
+            row.columns[1].textString:SetText(name)
+            row.columns[2].textString:SetText("|cff00ff00[Apply]|r")
+            row.columns[3].textString:SetText("|cffff0000[Delete]|r")
+            row.presetName = name
+            row:Show()
+        else
+            row:Hide()
+        end
+    end
+end
+
+function EMA_Totems:SettingsIndividualPresetListRowClick(rowNumber, columnNumber)
+    local row = self.settingsControlIndividualPresets.presetList.rows[rowNumber]
+    if not row or not row.presetName then return end
+    
+    if columnNumber == 2 then
+        self:ApplyPreset(row.presetName)
+    elseif columnNumber == 3 then
+        self:DeletePreset(row.presetName)
+    end
+end
+
+-- -----------------------------------------------------------------------
+-- TEAM PRESETS UI
+-- -----------------------------------------------------------------------
+
+function EMA_Totems:TeamPresetsSettingsCreate()
+    EMA_Totems_Presets_Migration(self.db)
+    self.settingsControlTeamPresets = {}
+    local EMAHelperSettings = LibStub("EMAHelperSettings-1.0")
+    
+    EMAHelperSettings:CreateSettings(self.settingsControlTeamPresets, "Totem Presets (Team)", "Class", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\TeamCore.tga", 82)
+    
+    local top, left = EMAHelperSettings:TopOfSettings(), EMAHelperSettings:LeftOfSettings()
+    local headingHeight, headingWidth = EMAHelperSettings:HeadingHeight(), EMAHelperSettings:HeadingWidth(true)
+    local movingTop = top
+    
+    EMAHelperSettings:CreateHeading(self.settingsControlTeamPresets, "Manage Team Totem Presets", movingTop, false)
     movingTop = movingTop - headingHeight - 10
     
-    self.settingsControlPresets.editBoxTeamPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 300, left, movingTop, "New Team Preset Name")
-    self.settingsControlPresets.buttonSaveTeamPreset = EMAHelperSettings:CreateButton(self.settingsControlPresets, 80, left + 310, movingTop - 20, "Save", function()
-        local name = self.settingsControlPresets.editBoxTeamPresetName.editbox:GetText()
+    self.settingsControlTeamPresets.editBoxTeamPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlTeamPresets, 300, left, movingTop, "New Team Preset Name")
+    self.settingsControlTeamPresets.buttonSaveTeamPreset = EMAHelperSettings:CreateButton(self.settingsControlTeamPresets, 80, left + 310, movingTop - 20, "Save", function()
+        local name = self.settingsControlTeamPresets.editBoxTeamPresetName.editbox:GetText()
         if name and name ~= "" then
             self:SaveTeamPreset(name)
-            self.settingsControlPresets.editBoxTeamPresetName.editbox:SetText("")
+            self.settingsControlTeamPresets.editBoxTeamPresetName.editbox:SetText("")
         else
             self:Print("Error: Please enter a name for the team preset.")
         end
     end)
     movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight() - 15
 
-    self.settingsControlPresets.teamPresetList = {
+    self.settingsControlTeamPresets.teamPresetList = {
         listFrameName = "EMATotemsTeamPresetsSettingsListFrame", 
-        parentFrame = self.settingsControlPresets.widgetSettings.content, 
+        parentFrame = self.settingsControlTeamPresets.widgetSettings.content, 
         listTop = movingTop, 
         listLeft = left, 
         listWidth = headingWidth, 
@@ -235,186 +287,127 @@ function EMA_Totems:PresetsSettingsCreate()
         scrollRefreshCallback = function() self:SettingsTeamPresetListScrollRefresh() end, 
         rowClickCallback = function(obj, rowNumber, columnNumber) self:SettingsTeamPresetListRowClick(rowNumber, columnNumber) end
     }
-    EMAHelperSettings:CreateScrollList(self.settingsControlPresets.teamPresetList)
-    movingTop = movingTop - self.settingsControlPresets.teamPresetList.listHeight - 25
+    EMAHelperSettings:CreateScrollList(self.settingsControlTeamPresets.teamPresetList)
+    movingTop = movingTop - self.settingsControlTeamPresets.teamPresetList.listHeight - 20
 
-    -- Team Preset Editor
-    EMAHelperSettings:CreateHeading(self.settingsControlPresets, "Team Preset Editor (Edit Offline/Online Members)", movingTop, false)
+    EMAHelperSettings:CreateHeading(self.settingsControlTeamPresets, "Team Preset Editor", movingTop, false)
     movingTop = movingTop - headingHeight - 15
 
-    self.settingsControlPresets.dropdownEditTeamPreset = EMAHelperSettings:CreateDropdown(self.settingsControlPresets, 200, left, movingTop, "Select Team Preset to Edit")
-    self.settingsControlPresets.dropdownEditTeamPreset:SetCallback("OnValueChanged", function(w, e, v) 
+    self.settingsControlTeamPresets.dropdownEditTeamPreset = EMAHelperSettings:CreateDropdown(self.settingsControlTeamPresets, 200, left, movingTop, "Select Preset to Edit")
+    self.settingsControlTeamPresets.dropdownEditTeamPreset:SetCallback("OnValueChanged", function(w, e, v) 
         self.selectedTeamPresetToEdit = v
         self.selectedMemberToEdit = nil
         self:SettingsRefresh()
     end)
     
-    -- Icon Display and Change
-    self.settingsControlPresets.displayPresetIcon = EMAHelperSettings:Icon(self.settingsControlPresets, 42, 42, "Interface\\Icons\\INV_Misc_QuestionMark", left + 220, movingTop, "Preset Icon", function() 
-        self:Print("To change the icon, drag a totem, spell, or item here, or type a name/ID in the box.")
+    self.settingsControlTeamPresets.displayPresetIcon = EMAHelperSettings:Icon(self.settingsControlTeamPresets, 42, 42, "Interface\\Icons\\INV_Misc_QuestionMark", left + 220, movingTop, "Icon", function() 
+        self:Print("Drag a totem, spell, or item here to change the preset icon.")
     end, "Drag a spell or item here to change the preset icon.")
     
-    self.settingsControlPresets.editBoxPresetIcon = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 150, left + 350, movingTop, "Icon Name/ID")
-    self.settingsControlPresets.editBoxPresetIcon:SetCallback("OnEnterPressed", function(w, e, v)
+    local iconFrame = self.settingsControlTeamPresets.displayPresetIcon.frame
+    iconFrame:SetScript("OnReceiveDrag", function()
+        if not self.selectedTeamPresetToEdit then return end
+        local type, id, info = GetCursorInfo()
+        local icon
+        if type == "spell" then icon = select(3, GetSpellInfo(id, info))
+        elseif type == "item" then icon = select(10, GetItemInfo(id)) end
+        if icon then self.db.teamPresets[self.selectedTeamPresetToEdit].icon = icon; ClearCursor(); self:SettingsRefresh() end
+    end)
+    iconFrame:HookScript("OnMouseUp", function()
+        if not self.selectedTeamPresetToEdit then return end
+        local type, id, info = GetCursorInfo()
+        if type == "spell" or type == "item" then iconFrame:GetScript("OnReceiveDrag")() end
+    end)
+
+    self.settingsControlTeamPresets.editBoxPresetIcon = EMAHelperSettings:CreateEditBox(self.settingsControlTeamPresets, 150, left + 350, movingTop, "Icon Name/ID")
+    self.settingsControlTeamPresets.editBoxPresetIcon:SetCallback("OnEnterPressed", function(w, e, v)
         if not self.selectedTeamPresetToEdit then return end
         local val = v:trim()
         if val == "" then return end
-        
         local function FindIconRobust(search)
             if tonumber(search) then return tonumber(search) end
             local sLower = search:lower()
-            
-            -- 1. Try direct API (works for known/cached spells)
             local name, _, icon = GetSpellInfo(search)
             if name and name:lower() == sLower then return icon end
-            
-            -- 2. Search our internal totem lists (allows finding totems not known by current char)
             for element, list in pairs(ns.totemLists) do
                 for _, id in ipairs(list) do
                     local tName, _, tIcon = GetSpellInfo(id)
-                    if tName and tName:lower() == sLower then
-                        return tIcon
-                    end
+                    if tName and tName:lower() == sLower then return tIcon end
                 end
             end
-            
-            -- 3. Try items
             local _, _, _, _, _, _, _, _, _, iIcon = GetItemInfo(search)
             if iIcon then return iIcon end
-            
             return nil
         end
-
         local icon = FindIconRobust(val)
-        if icon then
-            self.db.teamPresets[self.selectedTeamPresetToEdit].icon = icon
-            self:SettingsRefresh()
-        else
-            self:Print("Error: Could not find icon for: " .. val)
-        end
+        if icon then self.db.teamPresets[self.selectedTeamPresetToEdit].icon = icon; self:SettingsRefresh()
+        else self:Print("Error: Could not find icon for: " .. val) end
     end)
 
-    movingTop = movingTop - 60
+    movingTop = movingTop - 65
 
-    self.settingsControlPresets.teamMemberList = {
+    self.settingsControlTeamPresets.teamMemberList = {
         listFrameName = "EMATotemsTeamMemberListFrame", 
-        parentFrame = self.settingsControlPresets.widgetSettings.content, 
+        parentFrame = self.settingsControlTeamPresets.widgetSettings.content, 
         listTop = movingTop, 
         listLeft = left, 
         listWidth = headingWidth, 
         rowHeight = 25, 
         rowsToDisplay = 5, 
         columnsToDisplay = 1,
-        columnInformation = {
-            { width = 100, alignment = "LEFT" }
-        },
+        columnInformation = { { width = 100, alignment = "LEFT" } },
         scrollRefreshCallback = function() self:SettingsTeamMemberListScrollRefresh() end, 
         rowClickCallback = function(obj, rowNumber, columnNumber) self:SettingsTeamMemberListRowClick(rowNumber, columnNumber) end
     }
-    EMAHelperSettings:CreateScrollList(self.settingsControlPresets.teamMemberList)
-    movingTop = movingTop - self.settingsControlPresets.teamMemberList.listHeight - 10
+    EMAHelperSettings:CreateScrollList(self.settingsControlTeamPresets.teamMemberList)
+    movingTop = movingTop - self.settingsControlTeamPresets.teamMemberList.listHeight - 15
 
-    -- Member Editor Fields
-    self.settingsControlPresets.labelEditMember = EMAHelperSettings:CreateLabel(self.settingsControlPresets, headingWidth, left, movingTop, "Editing Member: None")
-    movingTop = movingTop - 20
+    self.settingsControlTeamPresets.labelEditMember = EMAHelperSettings:CreateLabel(self.settingsControlTeamPresets, headingWidth, left, movingTop, "Editing Member: None")
+    movingTop = movingTop - 25
 
     local dropdownWidth = (headingWidth - 20) / 2
-    self.settingsControlPresets.dropdownFire = EMAHelperSettings:CreateDropdown(self.settingsControlPresets, dropdownWidth, left, movingTop, "Fire Totem")
-    self.settingsControlPresets.dropdownAir = EMAHelperSettings:CreateDropdown(self.settingsControlPresets, dropdownWidth, left + dropdownWidth + 10, movingTop, "Air Totem")
-    movingTop = movingTop - 45
-    self.settingsControlPresets.dropdownWater = EMAHelperSettings:CreateDropdown(self.settingsControlPresets, dropdownWidth, left, movingTop, "Water Totem")
-    self.settingsControlPresets.dropdownEarth = EMAHelperSettings:CreateDropdown(self.settingsControlPresets, dropdownWidth, left + dropdownWidth + 10, movingTop, "Earth Totem")
-    movingTop = movingTop - 45
+    self.settingsControlTeamPresets.dropdownFire = EMAHelperSettings:CreateDropdown(self.settingsControlTeamPresets, dropdownWidth, left, movingTop, "Fire Totem")
+    self.settingsControlTeamPresets.dropdownAir = EMAHelperSettings:CreateDropdown(self.settingsControlTeamPresets, dropdownWidth, left + dropdownWidth + 10, movingTop, "Air Totem")
+    movingTop = movingTop - 50
+    self.settingsControlTeamPresets.dropdownWater = EMAHelperSettings:CreateDropdown(self.settingsControlTeamPresets, dropdownWidth, left, movingTop, "Water Totem")
+    self.settingsControlTeamPresets.dropdownEarth = EMAHelperSettings:CreateDropdown(self.settingsControlTeamPresets, dropdownWidth, left + dropdownWidth + 10, movingTop, "Earth Totem")
+    movingTop = movingTop - 50
     
-    self.settingsControlPresets.editBoxSequence = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, headingWidth, left, movingTop, "Cast Sequence")
-    movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight() - 10
+    self.settingsControlTeamPresets.editBoxSequence = EMAHelperSettings:CreateEditBox(self.settingsControlTeamPresets, headingWidth, left, movingTop, "Cast Sequence")
+    movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight() - 15
 
-    -- Set callbacks for editor fields
     local function UpdateMemberData()
         if not self.selectedTeamPresetToEdit or not self.selectedMemberToEdit then return end
         local preset = self.db.teamPresets[self.selectedTeamPresetToEdit]
         if not preset then return end
         local m = preset.members[self.selectedMemberToEdit]
-        if not m then 
-            preset.members[self.selectedMemberToEdit] = { totems = {}, sequence = "" }
-            m = preset.members[self.selectedMemberToEdit]
-        end
+        if not m then preset.members[self.selectedMemberToEdit] = { totems = {}, sequence = "" }; m = preset.members[self.selectedMemberToEdit] end
         m.totems = m.totems or {}
-        m.totems.Fire = self.settingsControlPresets.dropdownFire:GetValue()
-        m.totems.Air = self.settingsControlPresets.dropdownAir:GetValue()
-        m.totems.Water = self.settingsControlPresets.dropdownWater:GetValue()
-        m.totems.Earth = self.settingsControlPresets.dropdownEarth:GetValue()
-        m.sequence = self.settingsControlPresets.editBoxSequence.editbox:GetText()
+        m.totems.Fire = self.settingsControlTeamPresets.dropdownFire:GetValue()
+        m.totems.Air = self.settingsControlTeamPresets.dropdownAir:GetValue()
+        m.totems.Water = self.settingsControlTeamPresets.dropdownWater:GetValue()
+        m.totems.Earth = self.settingsControlTeamPresets.dropdownEarth:GetValue()
+        m.sequence = self.settingsControlTeamPresets.editBoxSequence.editbox:GetText()
         self:SettingsTeamMemberListScrollRefresh()
     end
 
-    self.settingsControlPresets.dropdownFire:SetCallback("OnValueChanged", UpdateMemberData)
-    self.settingsControlPresets.dropdownAir:SetCallback("OnValueChanged", UpdateMemberData)
-    self.settingsControlPresets.dropdownWater:SetCallback("OnValueChanged", UpdateMemberData)
-    self.settingsControlPresets.dropdownEarth:SetCallback("OnValueChanged", UpdateMemberData)
-    self.settingsControlPresets.editBoxSequence:SetCallback("OnEnterPressed", UpdateMemberData)
+    self.settingsControlTeamPresets.dropdownFire:SetCallback("OnValueChanged", UpdateMemberData)
+    self.settingsControlTeamPresets.dropdownAir:SetCallback("OnValueChanged", UpdateMemberData)
+    self.settingsControlTeamPresets.dropdownWater:SetCallback("OnValueChanged", UpdateMemberData)
+    self.settingsControlTeamPresets.dropdownEarth:SetCallback("OnValueChanged", UpdateMemberData)
+    self.settingsControlTeamPresets.editBoxSequence:SetCallback("OnEnterPressed", UpdateMemberData)
 
-    self:SettingsRefreshPresets()
-    self.settingsControlPresets.widgetSettings.content:SetHeight(-movingTop + 20)
-    
-    local keyListener = CreateFrame("Frame", nil, self.settingsControlPresets.widgetSettings.frame)
-    keyListener:SetPropagateKeyboardInput(true)
-    keyListener:SetScript("OnKeyDown", function(sf, key) if self.waitingForKey then if key ~= "ESCAPE" then self.db.sequenceKeybind = key; self:UPDATE_BINDINGS(); self:Print("Keybind set to: " .. key) end; self.waitingForKey = false; self:SettingsRefresh() end end)
+    self.settingsControlTeamPresets.widgetSettings.content:SetHeight(-movingTop + 20)
 end
-
-function EMA_Totems:SettingsPresetListScrollRefresh()
-    if not self.settingsControlPresets or not self.settingsControlPresets.presetList then return end
-    
-    local presets = {}
-    for name, _ in pairs(self.db.presets) do
-        table.insert(presets, name)
-    end
-    table.sort(presets)
-    
-    FauxScrollFrame_Update(self.settingsControlPresets.presetList.listScrollFrame, #presets, self.settingsControlPresets.presetList.rowsToDisplay, self.settingsControlPresets.presetList.rowHeight)
-    local offset = FauxScrollFrame_GetOffset(self.settingsControlPresets.presetList.listScrollFrame)
-    
-    for i = 1, self.settingsControlPresets.presetList.rowsToDisplay do
-        local row = self.settingsControlPresets.presetList.rows[i]
-        local dataIndex = i + offset
-        if dataIndex <= #presets then
-            local name = presets[dataIndex]
-            row.columns[1].textString:SetText(name)
-            row.columns[2].textString:SetText("|cff00ff00[Apply]|r")
-            row.columns[3].textString:SetText("|cffff0000[Delete]|r")
-            row.presetName = name
-            row:Show()
-        else
-            row:Hide()
-        end
-    end
-end
-
-function EMA_Totems:SettingsPresetListRowClick(rowNumber, columnNumber)
-    local row = self.settingsControlPresets.presetList.rows[rowNumber]
-    if not row or not row.presetName then return end
-    
-    if columnNumber == 2 then
-        self:ApplyPreset(row.presetName)
-    elseif columnNumber == 3 then
-        self:DeletePreset(row.presetName)
-    end
-end
-
--- -----------------------------------------------------------------------
--- TEAM PRESET REFRESH/CLICK
--- -----------------------------------------------------------------------
 
 function EMA_Totems:SettingsTeamPresetListScrollRefresh()
-    if not self.settingsControlPresets or not self.settingsControlPresets.teamPresetList then return end
+    if not self.settingsControlTeamPresets or not self.settingsControlTeamPresets.teamPresetList then return end
     
     local presets = {}
-    for name, _ in pairs(self.db.teamPresets) do
-        table.insert(presets, name)
-    end
+    for name, _ in pairs(self.db.teamPresets) do table.insert(presets, name) end
     table.sort(presets)
     
-    local list = self.settingsControlPresets.teamPresetList
+    local list = self.settingsControlTeamPresets.teamPresetList
     FauxScrollFrame_Update(list.listScrollFrame, #presets, list.rowsToDisplay, list.rowHeight)
     local offset = FauxScrollFrame_GetOffset(list.listScrollFrame)
     
@@ -424,8 +417,6 @@ function EMA_Totems:SettingsTeamPresetListScrollRefresh()
         if dataIndex <= #presets then
             local name = presets[dataIndex]
             local preset = self.db.teamPresets[name]
-            
-            -- Setup icon if needed
             if not row.presetIcon then
                 row.presetIcon = row.columns[1]:CreateTexture(nil, "ARTWORK")
                 row.presetIcon:SetSize(list.rowHeight - 4, list.rowHeight - 4)
@@ -436,38 +427,26 @@ function EMA_Totems:SettingsTeamPresetListScrollRefresh()
             row.columns[1].textString:ClearAllPoints()
             row.columns[1].textString:SetPoint("LEFT", list.rowHeight + 4, 0)
             row.columns[1].textString:SetPoint("RIGHT", 0, 0)
-            
             row.columns[1].textString:SetText(name)
             row.columns[2].textString:SetText("|cff00ff00[Apply]|r")
             row.columns[3].textString:SetText("|cffff0000[Delete]|r")
-            row.presetName = name
-            row:Show()
-        else
-            row:Hide()
-        end
+            row.presetName = name; row:Show()
+        else row:Hide() end
     end
 end
 
 function EMA_Totems:SettingsTeamPresetListRowClick(rowNumber, columnNumber)
-    local row = self.settingsControlPresets.teamPresetList.rows[rowNumber]
+    local row = self.settingsControlTeamPresets.teamPresetList.rows[rowNumber]
     if not row or not row.presetName then return end
-    
-    if columnNumber == 2 then
-        self:ApplyTeamPreset(row.presetName)
-    elseif columnNumber == 3 then
-        self:DeleteTeamPreset(row.presetName)
-    end
+    if columnNumber == 2 then self:ApplyTeamPreset(row.presetName)
+    elseif columnNumber == 3 then self:DeleteTeamPreset(row.presetName) end
 end
 
--- -----------------------------------------------------------------------
--- TEAM MEMBER EDITOR REFRESH/CLICK
--- -----------------------------------------------------------------------
-
 function EMA_Totems:SettingsTeamMemberListScrollRefresh()
-    if not self.settingsControlPresets or not self.settingsControlPresets.teamMemberList then return end
+    if not self.settingsControlTeamPresets or not self.settingsControlTeamPresets.teamMemberList then return end
     if not self.selectedTeamPresetToEdit then
-        FauxScrollFrame_Update(self.settingsControlPresets.teamMemberList.listScrollFrame, 0, 5, 25)
-        for i=1,5 do self.settingsControlPresets.teamMemberList.rows[i]:Hide() end
+        FauxScrollFrame_Update(self.settingsControlTeamPresets.teamMemberList.listScrollFrame, 0, 5, 25)
+        for i=1,5 do self.settingsControlTeamPresets.teamMemberList.rows[i]:Hide() end
         return
     end
 
@@ -475,23 +454,19 @@ function EMA_Totems:SettingsTeamMemberListScrollRefresh()
     for index, characterName in EMAApi.TeamListOrdered() do
         local class, _ = EMAApi.GetClass(characterName)
         local isShaman = (class and class:lower() == "shaman") or (self.shamanMembers[characterName] == true)
-        
-        -- Fallback for local player if EMA doesn't know class yet
         if not isShaman and characterName == self.characterName then
             local _, myClass = UnitClass("player")
             if myClass == "SHAMAN" then isShaman = true end
         end
-
-        if isShaman then
-            table.insert(members, characterName)
-        end
+        if isShaman then table.insert(members, characterName) end
     end
     
-    FauxScrollFrame_Update(self.settingsControlPresets.teamMemberList.listScrollFrame, #members, self.settingsControlPresets.teamMemberList.rowsToDisplay, self.settingsControlPresets.teamMemberList.rowHeight)
-    local offset = FauxScrollFrame_GetOffset(self.settingsControlPresets.teamMemberList.listScrollFrame)
+    local list = self.settingsControlTeamPresets.teamMemberList
+    FauxScrollFrame_Update(list.listScrollFrame, #members, list.rowsToDisplay, list.rowHeight)
+    local offset = FauxScrollFrame_GetOffset(list.listScrollFrame)
     
-    for i = 1, self.settingsControlPresets.teamMemberList.rowsToDisplay do
-        local row = self.settingsControlPresets.teamMemberList.rows[i]
+    for i = 1, list.rowsToDisplay do
+        local row = list.rows[i]
         local dataIndex = i + offset
         if dataIndex <= #members then
             local name = members[dataIndex]
@@ -504,103 +479,71 @@ function EMA_Totems:SettingsTeamMemberListScrollRefresh()
                 info = string.format(" - [F: %s, A: %s, W: %s, E: %s]", GetSN(data.totems.Fire):sub(1,4), GetSN(data.totems.Air):sub(1,4), GetSN(data.totems.Water):sub(1,4), GetSN(data.totems.Earth):sub(1,4))
             end
             row.columns[1].textString:SetText(color .. Ambiguate(name, "short") .. "|r" .. info)
-            row.memberName = name
-            row:Show()
-        else
-            row:Hide()
-        end
+            row.memberName = name; row:Show()
+        else row:Hide() end
     end
 end
 
 function EMA_Totems:SettingsTeamMemberListRowClick(rowNumber, columnNumber)
-    local row = self.settingsControlPresets.teamMemberList.rows[rowNumber]
+    local row = self.settingsControlTeamPresets.teamMemberList.rows[rowNumber]
     if not row or not row.memberName then return end
-    
-    self.selectedMemberToEdit = row.memberName
-    self:SettingsRefresh()
+    self.selectedMemberToEdit = row.memberName; self:SettingsRefresh()
 end
 
--- Helper to get totem list for dropdown
 local function GetTotemListForDropdown(element)
     local list = ns.totemLists[element]
     local dropdownList = { [""] = "None" }
     for _, id in ipairs(list) do
         local name = GetSpellInfo(id)
-        if name then
-            dropdownList[id] = name
-        else
-            dropdownList[id] = "ID: " .. id
-        end
+        dropdownList[id] = name or ("ID: " .. id)
     end
     return dropdownList
 end
 
 function EMA_Totems:SettingsRefreshPresets()
-    if not self.settingsControlPresets then 
-        return 
+    if self.settingsControlIndividualPresets then
+        self:SettingsIndividualPresetListScrollRefresh()
     end
     
-    self:SettingsPresetListScrollRefresh()
-    self:SettingsTeamPresetListScrollRefresh()
-    
-    -- Update Team Preset Dropdown
-    local teamPresetList = {}
-    for name, _ in pairs(self.db.teamPresets) do
-        teamPresetList[name] = name
-    end
-    self.settingsControlPresets.dropdownEditTeamPreset:SetList(teamPresetList)
-    self.settingsControlPresets.dropdownEditTeamPreset:SetValue(self.selectedTeamPresetToEdit)
-    
-    -- Update Icon
-    if self.selectedTeamPresetToEdit then
-        local icon = self.db.teamPresets[self.selectedTeamPresetToEdit].icon or "Interface\\Icons\\Spell_Totem_WardOfDraining"
-        self.settingsControlPresets.displayPresetIcon:SetImage(icon)
-        self.settingsControlPresets.editBoxPresetIcon:SetDisabled(false)
-    else
-        self.settingsControlPresets.displayPresetIcon:SetImage("Interface\\Icons\\INV_Misc_QuestionMark")
-        self.settingsControlPresets.editBoxPresetIcon:SetDisabled(true)
-    end
-    self.settingsControlPresets.editBoxPresetIcon.editbox:SetText("")
-
-    -- Update Member Editor
-    if self.selectedMemberToEdit then
-        self.settingsControlPresets.labelEditMember:SetText("Editing Member: |cffffff00" .. Ambiguate(self.selectedMemberToEdit, "short"))
+    if self.settingsControlTeamPresets then
+        self:SettingsTeamPresetListScrollRefresh()
+        local teamPresetList = {}
+        for name, _ in pairs(self.db.teamPresets) do teamPresetList[name] = name end
+        self.settingsControlTeamPresets.dropdownEditTeamPreset:SetList(teamPresetList)
+        self.settingsControlTeamPresets.dropdownEditTeamPreset:SetValue(self.selectedTeamPresetToEdit)
         
-        -- Populate dropdowns
-        self.settingsControlPresets.dropdownFire:SetList(GetTotemListForDropdown("Fire"))
-        self.settingsControlPresets.dropdownAir:SetList(GetTotemListForDropdown("Air"))
-        self.settingsControlPresets.dropdownWater:SetList(GetTotemListForDropdown("Water"))
-        self.settingsControlPresets.dropdownEarth:SetList(GetTotemListForDropdown("Earth"))
-        
-        local preset = self.db.teamPresets[self.selectedTeamPresetToEdit]
-        local data = preset and preset.members[self.selectedMemberToEdit]
-        if data then
-            self.settingsControlPresets.dropdownFire:SetValue(data.totems and data.totems.Fire or "")
-            self.settingsControlPresets.dropdownAir:SetValue(data.totems and data.totems.Air or "")
-            self.settingsControlPresets.dropdownWater:SetValue(data.totems and data.totems.Water or "")
-            self.settingsControlPresets.dropdownEarth:SetValue(data.totems and data.totems.Earth or "")
-            self.settingsControlPresets.editBoxSequence:SetText(data.sequence or "Fire, Air, Water, Earth")
+        if self.selectedTeamPresetToEdit then
+            local icon = self.db.teamPresets[self.selectedTeamPresetToEdit].icon or "Interface\\Icons\\Spell_Totem_WardOfDraining"
+            self.settingsControlTeamPresets.displayPresetIcon:SetImage(icon)
+            self.settingsControlTeamPresets.editBoxPresetIcon:SetDisabled(false)
         else
-            self.settingsControlPresets.dropdownFire:SetValue("")
-            self.settingsControlPresets.dropdownAir:SetValue("")
-            self.settingsControlPresets.dropdownWater:SetValue("")
-            self.settingsControlPresets.dropdownEarth:SetValue("")
-            self.settingsControlPresets.editBoxSequence:SetText("Fire, Air, Water, Earth")
+            self.settingsControlTeamPresets.displayPresetIcon:SetImage("Interface\\Icons\\INV_Misc_QuestionMark")
+            self.settingsControlTeamPresets.editBoxPresetIcon:SetDisabled(true)
         end
-        
-        self.settingsControlPresets.dropdownFire:SetDisabled(false)
-        self.settingsControlPresets.dropdownAir:SetDisabled(false)
-        self.settingsControlPresets.dropdownWater:SetDisabled(false)
-        self.settingsControlPresets.dropdownEarth:SetDisabled(false)
-        self.settingsControlPresets.editBoxSequence:SetDisabled(false)
-    else
-        self.settingsControlPresets.labelEditMember:SetText("Editing Member: None")
-        self.settingsControlPresets.dropdownFire:SetDisabled(true)
-        self.settingsControlPresets.dropdownAir:SetDisabled(true)
-        self.settingsControlPresets.dropdownWater:SetDisabled(true)
-        self.settingsControlPresets.dropdownEarth:SetDisabled(true)
-        self.settingsControlPresets.editBoxSequence:SetDisabled(true)
+        self.settingsControlTeamPresets.editBoxPresetIcon.editbox:SetText("")
+
+        if self.selectedMemberToEdit then
+            self.settingsControlTeamPresets.labelEditMember:SetText("Editing Member: |cffffff00" .. Ambiguate(self.selectedMemberToEdit, "short"))
+            self.settingsControlTeamPresets.dropdownFire:SetList(GetTotemListForDropdown("Fire"))
+            self.settingsControlTeamPresets.dropdownAir:SetList(GetTotemListForDropdown("Air"))
+            self.settingsControlTeamPresets.dropdownWater:SetList(GetTotemListForDropdown("Water"))
+            self.settingsControlTeamPresets.dropdownEarth:SetList(GetTotemListForDropdown("Earth"))
+            local preset = self.db.teamPresets[self.selectedTeamPresetToEdit]
+            local data = preset and preset.members[self.selectedMemberToEdit]
+            if data then
+                self.settingsControlTeamPresets.dropdownFire:SetValue(data.totems and data.totems.Fire or "")
+                self.settingsControlTeamPresets.dropdownAir:SetValue(data.totems and data.totems.Air or "")
+                self.settingsControlTeamPresets.dropdownWater:SetValue(data.totems and data.totems.Water or "")
+                self.settingsControlTeamPresets.dropdownEarth:SetValue(data.totems and data.totems.Earth or "")
+                self.settingsControlTeamPresets.editBoxSequence:SetText(data.sequence or "Fire, Air, Water, Earth")
+            else
+                self.settingsControlTeamPresets.dropdownFire:SetValue(""); self.settingsControlTeamPresets.dropdownAir:SetValue(""); self.settingsControlTeamPresets.dropdownWater:SetValue(""); self.settingsControlTeamPresets.dropdownEarth:SetValue(""); self.settingsControlTeamPresets.editBoxSequence:SetText("Fire, Air, Water, Earth")
+            end
+            self.settingsControlTeamPresets.dropdownFire:SetDisabled(false); self.settingsControlTeamPresets.dropdownAir:SetDisabled(false); self.settingsControlTeamPresets.dropdownWater:SetDisabled(false); self.settingsControlTeamPresets.dropdownEarth:SetDisabled(false); self.settingsControlTeamPresets.editBoxSequence:SetDisabled(false)
+        else
+            self.settingsControlTeamPresets.labelEditMember:SetText("Editing Member: None")
+            self.settingsControlTeamPresets.dropdownFire:SetDisabled(true); self.settingsControlTeamPresets.dropdownAir:SetDisabled(true); self.settingsControlTeamPresets.dropdownWater:SetDisabled(true); self.settingsControlTeamPresets.dropdownEarth:SetDisabled(true); self.settingsControlTeamPresets.editBoxSequence:SetDisabled(true)
+        end
+        self:SettingsTeamMemberListScrollRefresh()
     end
-    
-    self:SettingsTeamMemberListScrollRefresh()
 end
