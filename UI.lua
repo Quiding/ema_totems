@@ -517,22 +517,31 @@ function UI:Initialize()
             GameTooltip:SetOwner(self.masterFrame.teamPresetBtn, "ANCHOR_TOP")
             GameTooltip:SetText("Team Presets")
             GameTooltip:Show()
-            if EMA_Totems.db.presetHandlesOnHover then self.masterFrame.teamPresetBtn:SetAlpha(1) end
+            if EMA_Totems.db.showPresets and EMA_Totems.db.showTeamPresetHandle and EMA_Totems.db.presetHandlesOnHover then
+                self.masterFrame.teamPresetBtn:SetAlpha(1)
+            end
         end)
         self.masterFrame.teamPresetBtn:SetScript("OnLeave", function() 
             GameTooltip:Hide()
+            if EMA_Totems.db.showPresets and EMA_Totems.db.showTeamPresetHandle and EMA_Totems.db.presetHandlesOnHover then
+                self.masterFrame.teamPresetBtn:SetAlpha(0)
+            end
         end)
         
-        self.masterFrame.timeSinceHoverCheck = 0
-        self.masterFrame:SetScript("OnUpdate", function(self, elapsed)
-            self.timeSinceHoverCheck = self.timeSinceHoverCheck + elapsed
-            if self.timeSinceHoverCheck > 0.1 then
-                self.timeSinceHoverCheck = 0
-                if EMA_Totems.db.showPresets and EMA_Totems.db.showTeamPresetHandle and EMA_Totems.db.presetHandlesOnHover then
-                    if self:IsMouseOver(0, 0, 0, 0) or self.teamPresetBtn:IsMouseOver(0, 0, 0, 0) then
-                        self.teamPresetBtn:SetAlpha(1)
+        -- Reliable Hover for Team Button (especially when master is hidden)
+        self.masterFrame.teamPresetBtn.timeSinceHover = 0
+        self.masterFrame.teamPresetBtn:SetScript("OnUpdate", function(sf, elapsed)
+            sf.timeSinceHover = sf.timeSinceHover + elapsed
+            if sf.timeSinceHover > 0.1 then
+                sf.timeSinceHover = 0
+                local db = EMA_Totems.db
+                if db and db.showPresets and db.showTeamPresetHandle and db.presetHandlesOnHover then
+                    -- If we are in ungrouped mode, we check if mouse is over the button or the parent bar
+                    local parent = sf:GetParent()
+                    if sf:IsMouseOver(0,0,0,0) or (parent and parent ~= self.masterFrame and parent:IsMouseOver(0,0,0,0)) or (not db.breakUpBars and self.masterFrame:IsMouseOver(0,0,0,0)) then
+                        sf:SetAlpha(1)
                     else
-                        self.teamPresetBtn:SetAlpha(0)
+                        sf:SetAlpha(0)
                     end
                 end
             end
@@ -633,6 +642,10 @@ function UI:RefreshBars()
 
     -- Team Preset Button Visibility and Parenting
     if db.showPresets and db.showTeamPresetHandle then
+        local pSize = math.max(16, db.iconSize * 0.8)
+        self.masterFrame.teamPresetBtn:SetSize(pSize, pSize)
+        self.masterFrame.teamPresetBtn.text:SetFont(SharedMedia:Fetch("font", db.fontStyle or "Arial Narrow"), pSize * 0.7, "OUTLINE")
+        
         if db.breakUpBars then
             -- Find first shaman bar that we are about to show
             local firstShaman = shamanList[1] and shamanList[1].name
