@@ -482,9 +482,9 @@ function UI:Initialize()
         end)
 
         -- Team Preset Button
-        self.masterFrame.teamPresetBtn = CreateFrame("Button", nil, self.masterFrame.handle, "BackdropTemplate")
+        self.masterFrame.teamPresetBtn = CreateFrame("Button", nil, self.masterFrame, "BackdropTemplate")
         self.masterFrame.teamPresetBtn:SetSize(16, 16)
-        self.masterFrame.teamPresetBtn:SetPoint("BOTTOM", self.masterFrame.handle, "BOTTOM", 0, 0)
+        self.masterFrame.teamPresetBtn:SetPoint("BOTTOMRIGHT", self.masterFrame, "BOTTOMLEFT", 0, 0)
         self.masterFrame.teamPresetBtn:SetBackdrop({ bgFile = "Interface\\ChatFrame\\ChatFrameBackground", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
         self.masterFrame.teamPresetBtn:SetBackdropColor(0, 0.8, 0, 1); self.masterFrame.teamPresetBtn:SetBackdropBorderColor(0, 0.4, 0, 1)
         self.masterFrame.teamPresetBtn.icon = self.masterFrame.teamPresetBtn:CreateTexture(nil, "ARTWORK"); self.masterFrame.teamPresetBtn.icon:SetAllPoints(self.masterFrame.teamPresetBtn)
