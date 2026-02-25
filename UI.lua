@@ -222,6 +222,7 @@ end
 local function CreateTotemBar(shamanName, parent)
     local f = CreateFrame("Frame", nil, parent, "BackdropTemplate")
     f.shamanName = shamanName
+    f:EnableMouse(true)
 
     -- Move Handle
     f.handle = CreateFrame("Frame", nil, f, "BackdropTemplate")
@@ -425,11 +426,19 @@ local function CreateTotemBar(shamanName, parent)
         ApplySkin(self)
     end
 
-    f:SetScript("OnEnter", function() 
-        if EMA_Totems.db.presetHandlesOnHover then f.presetBtn:SetAlpha(1) end
-    end)
-    f:SetScript("OnLeave", function() 
-        if EMA_Totems.db.presetHandlesOnHover then f.presetBtn:SetAlpha(0) end
+    f.timeSinceHoverCheck = 0
+    f:SetScript("OnUpdate", function(self, elapsed)
+        self.timeSinceHoverCheck = self.timeSinceHoverCheck + elapsed
+        if self.timeSinceHoverCheck > 0.1 then
+            self.timeSinceHoverCheck = 0
+            if EMA_Totems.db.presetHandlesOnHover then
+                if self:IsMouseOver(0, 0, 0, 0) then
+                    self.presetBtn:SetAlpha(1)
+                else
+                    self.presetBtn:SetAlpha(0)
+                end
+            end
+        end
     end)
 
     f:UpdateLayout()
@@ -505,14 +514,21 @@ function UI:Initialize()
         end)
         self.masterFrame.teamPresetBtn:SetScript("OnLeave", function() 
             GameTooltip:Hide()
-            if EMA_Totems.db.presetHandlesOnHover then self.masterFrame.teamPresetBtn:SetAlpha(0) end
         end)
         
-        self.masterFrame:SetScript("OnEnter", function() 
-            if EMA_Totems.db.presetHandlesOnHover and EMA_Totems.db.showTeamPresetHandle then self.masterFrame.teamPresetBtn:SetAlpha(1) end
-        end)
-        self.masterFrame:SetScript("OnLeave", function() 
-            if EMA_Totems.db.presetHandlesOnHover then self.masterFrame.teamPresetBtn:SetAlpha(0) end
+        self.masterFrame.timeSinceHoverCheck = 0
+        self.masterFrame:SetScript("OnUpdate", function(self, elapsed)
+            self.timeSinceHoverCheck = self.timeSinceHoverCheck + elapsed
+            if self.timeSinceHoverCheck > 0.1 then
+                self.timeSinceHoverCheck = 0
+                if EMA_Totems.db.showPresets and EMA_Totems.db.showTeamPresetHandle and EMA_Totems.db.presetHandlesOnHover then
+                    if self:IsMouseOver(0, 0, 0, 0) then
+                        self.teamPresetBtn:SetAlpha(1)
+                    else
+                        self.teamPresetBtn:SetAlpha(0)
+                    end
+                end
+            end
         end)
     end
     
