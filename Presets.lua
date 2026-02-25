@@ -6,6 +6,7 @@ local EMA_Totems = ns.EMA_Totems
 -- -----------------------------------------------------------------------
 
 function EMA_Totems:SavePreset(presetName)
+    local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
     if not presetName or presetName == "" then 
         self:Print("Error: Please enter a preset name.")
         return 
@@ -62,38 +63,28 @@ end
 -- -----------------------------------------------------------------------
 
 function EMA_Totems:SaveTeamPreset(presetName)
-    self:Print("DEBUG: SaveTeamPreset called with name: " .. tostring(presetName))
+    local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
     if not presetName or presetName == "" then 
         self:Print("Error: Please enter a team preset name.")
         return 
     end
     
-    -- Debug: list all keys in selectedTotems
-    self:Print("DEBUG: Listing all characters in database:")
-    for k, _ in pairs(self.db.selectedTotems) do
-        self:Print("DEBUG: DB char key: " .. tostring(k))
-    end
-
     local teamData = {}
     local count = 0
     for index, characterName in EMAApi.TeamListOrdered() do
-        self:Print("DEBUG: Checking team member: " .. tostring(characterName))
         local totems = self.db.selectedTotems[characterName]
         local sequence = self.db.castSequences[characterName]
         if totems or sequence then
-            self:Print("DEBUG: Found data for: " .. tostring(characterName))
             teamData[characterName] = {
                 totems = totems and EMAUtilities:CopyTable(totems) or nil,
                 sequence = sequence
             }
             count = count + 1
-        else
-            self:Print("DEBUG: NO data for character: " .. tostring(characterName))
         end
     end
     
     if count == 0 then
-        self:Print("Error: No team data found to save.")
+        self:Print("Error: No team data found to save. Make sure totems are selected on your team members.")
         return
     end
 
@@ -103,6 +94,7 @@ function EMA_Totems:SaveTeamPreset(presetName)
 end
 
 function EMA_Totems:ApplyTeamPreset(presetName)
+    local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
     local teamData = self.db.teamPresets[presetName]
     if not teamData then return end
     
@@ -152,7 +144,6 @@ function EMA_Totems:PresetsSettingsCreate()
     self.settingsControlPresets.editBoxPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 300, left, movingTop, "New Preset Name")
     self.settingsControlPresets.buttonSavePreset = EMAHelperSettings:CreateButton(self.settingsControlPresets, 120, left + 310, movingTop, "Save Current", function()
         local name = self.settingsControlPresets.editBoxPresetName.editbox:GetText()
-        self:Print("DEBUG: Single Save button clicked. Name from editbox: " .. tostring(name))
         if name and name ~= "" then
             self:SavePreset(name)
             self.settingsControlPresets.editBoxPresetName.editbox:SetText("")
@@ -190,7 +181,6 @@ function EMA_Totems:PresetsSettingsCreate()
     self.settingsControlPresets.editBoxTeamPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 300, left, movingTop, "New Team Preset Name")
     self.settingsControlPresets.buttonSaveTeamPreset = EMAHelperSettings:CreateButton(self.settingsControlPresets, 120, left + 310, movingTop, "Save Current Team", function()
         local name = self.settingsControlPresets.editBoxTeamPresetName.editbox:GetText()
-        self:Print("DEBUG: Team Save button clicked. Name from editbox: " .. tostring(name))
         if name and name ~= "" then
             self:SaveTeamPreset(name)
             self.settingsControlPresets.editBoxTeamPresetName.editbox:SetText("")
@@ -289,6 +279,10 @@ function EMA_Totems:PresetsSettingsCreate()
 
     self:SettingsRefreshPresets()
     self.settingsControlPresets.widgetSettings.content:SetHeight(-movingTop + 20)
+    
+    local keyListener = CreateFrame("Frame", nil, self.settingsControlPresets.widgetSettings.frame)
+    keyListener:SetPropagateKeyboardInput(true)
+    keyListener:SetScript("OnKeyDown", function(sf, key) if self.waitingForKey then if key ~= "ESCAPE" then self.db.sequenceKeybind = key; self:UPDATE_BINDINGS(); self:Print("Keybind set to: " .. key) end; self.waitingForKey = false; self:SettingsRefresh() end end)
 end
 
 function EMA_Totems:SettingsPresetListScrollRefresh()
@@ -339,7 +333,6 @@ function EMA_Totems:SettingsTeamPresetListScrollRefresh()
     
     local presets = {}
     for name, _ in pairs(self.db.teamPresets) do
-        self:Print("DEBUG: Found team preset key in loop: " .. tostring(name))
         table.insert(presets, name)
     end
     table.sort(presets)
@@ -348,14 +341,11 @@ function EMA_Totems:SettingsTeamPresetListScrollRefresh()
     FauxScrollFrame_Update(list.listScrollFrame, #presets, list.rowsToDisplay, list.rowHeight)
     local offset = FauxScrollFrame_GetOffset(list.listScrollFrame)
     
-    self:Print(string.format("DEBUG: Refreshing Team List. %d presets, offset %d", #presets, offset))
-    
     for i = 1, list.rowsToDisplay do
         local row = list.rows[i]
         local dataIndex = i + offset
         if dataIndex <= #presets then
             local name = presets[dataIndex]
-            self:Print(string.format("DEBUG: Row %d showing preset: %s", i, name))
             row.columns[1].textString:SetText(name)
             row.columns[2].textString:SetText("|cff00ff00[Apply]|r")
             row.columns[3].textString:SetText("|cffff0000[Delete]|r")
@@ -445,16 +435,8 @@ end
 
 function EMA_Totems:SettingsRefreshPresets()
     if not self.settingsControlPresets then 
-        -- self:Print("DEBUG: settingsControlPresets is nil")
         return 
     end
-    
-    local presetCount = 0
-    for _ in pairs(self.db.presets) do presetCount = presetCount + 1 end
-    local teamPresetCount = 0
-    for _ in pairs(self.db.teamPresets) do teamPresetCount = teamPresetCount + 1 end
-    
-    self:Print(string.format("DEBUG: Refreshing Presets. Found %d single, %d team presets.", presetCount, teamPresetCount))
     
     self:SettingsPresetListScrollRefresh()
     self:SettingsTeamPresetListScrollRefresh()
@@ -469,7 +451,6 @@ function EMA_Totems:SettingsRefreshPresets()
     
     -- Update Member Editor
     if self.selectedMemberToEdit then
-        self:Print("DEBUG: Refreshing Editor for member: " .. tostring(self.selectedMemberToEdit))
         self.settingsControlPresets.labelEditMember:SetText("Editing Member: |cffffff00" .. Ambiguate(self.selectedMemberToEdit, "short"))
         
         -- Populate dropdowns
