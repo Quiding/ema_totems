@@ -522,7 +522,7 @@ function UI:Initialize()
             if self.timeSinceHoverCheck > 0.1 then
                 self.timeSinceHoverCheck = 0
                 if EMA_Totems.db.showPresets and EMA_Totems.db.showTeamPresetHandle and EMA_Totems.db.presetHandlesOnHover then
-                    if self:IsMouseOver(0, 0, 0, 0) then
+                    if self:IsMouseOver(0, 0, 0, 0) or self.teamPresetBtn:IsMouseOver(0, 0, 0, 0) then
                         self.teamPresetBtn:SetAlpha(1)
                     else
                         self.teamPresetBtn:SetAlpha(0)
