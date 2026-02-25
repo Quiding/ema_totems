@@ -376,25 +376,27 @@ local function CreateTotemBar(shamanName, parent)
         local hasSeq = self.seqBtn and not onlyTimers
         local hasPreset = db.showPresets and db.showIndividualPresetHandles
         local numIcons = 4 + (hasSeq and 1 or 0) + (hasPreset and 1 or 0)
+        local presetOnLeft = (db.presetButtonPosition or "LeftAbove") == "LeftAbove"
         
         ApplyFontStyle(self.nameLabel)
         local nameWidth = showNames and (self.nameLabel:GetStringWidth() + 4) or 0
-        
         local iconsBoundingSize = (size * numIcons) + (margin * (numIcons - 1))
+        
         local nameOffsetX, nameOffsetY = 0, 0
         local iconIdx = 0
         
         -- Individual Preset Button
         if hasPreset then
             self.presetBtn:Show(); self.presetBtn:SetSize(size, size); self.presetBtn:ClearAllPoints()
+            local pIdx = presetOnLeft and 0 or (numIcons - 1)
             if layout == "Horizontal" then 
-                self.presetBtn:SetPoint("TOPLEFT", iconIdx*(size + margin), -nameHeight)
-                if db.presetHandlesOnHover then nameOffsetX = size + margin end
+                self.presetBtn:SetPoint("TOPLEFT", pIdx*(size + margin), -nameHeight)
+                if presetOnLeft and not db.presetHandlesOnHover then nameOffsetX = size + margin end
             else 
-                self.presetBtn:SetPoint("TOPLEFT", 0, -iconIdx*(size + margin) - nameHeight)
-                if db.presetHandlesOnHover then nameOffsetY = -(size + margin) end
+                self.presetBtn:SetPoint("TOPLEFT", 0, -pIdx*(size + margin) - nameHeight)
+                if presetOnLeft and not db.presetHandlesOnHover then nameOffsetY = -(size + margin) end
             end
-            iconIdx = iconIdx + 1
+            if presetOnLeft then iconIdx = 1 end
             if db.presetHandlesOnHover then self.presetBtn:SetAlpha(0) else self.presetBtn:SetAlpha(1) end
             -- Scale the 'P' text
             self.presetBtn.text:SetFont(SharedMedia:Fetch("font", db.fontStyle or "Arial Narrow"), size * 0.7, "OUTLINE")

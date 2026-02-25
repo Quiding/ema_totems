@@ -107,6 +107,7 @@ EMA_Totems.settings = {
         showIndividualPresetHandles = true,
         showTeamPresetHandle = true,
         presetHandlesOnHover = false,
+        presetButtonPosition = "LeftAbove", -- "Left" or "Right" for horizontal, "Above" or "Below" for vertical
         frameBackgroundColourR = 0.1, frameBackgroundColourG = 0.1, frameBackgroundColourB = 0.1, frameBackgroundColourA = 0.7,
         frameBorderColourR = 0.5, frameBorderColourG = 0.5, frameBorderColourB = 0.5, frameBorderColourA = 1.0,
     }

@@ -158,7 +158,11 @@ function EMA_Totems:IndividualPresetsSettingsCreate()
     self.settingsControlIndividualPresets.checkBoxShowIndividualHandles = EMAHelperSettings:CreateCheckBox(self.settingsControlIndividualPresets, headingWidth, left, movingTop, "Show Individual Preset Buttons on Bars", function(w, e, v) self.db.showIndividualPresetHandles = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
     movingTop = movingTop - 25
     self.settingsControlIndividualPresets.checkBoxHandlesOnHover = EMAHelperSettings:CreateCheckBox(self.settingsControlIndividualPresets, headingWidth, left, movingTop, "Only show buttons on Mouse Over", function(w, e, v) self.db.presetHandlesOnHover = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
-    movingTop = movingTop - 35
+    movingTop = movingTop - 25
+
+    self.settingsControlIndividualPresets.dropdownPresetPosition = EMAHelperSettings:CreateDropdown(self.settingsControlIndividualPresets, 300, left, movingTop, "Preset Button Position")
+    self.settingsControlIndividualPresets.dropdownPresetPosition:SetCallback("OnValueChanged", function(w, e, v) self.db.presetButtonPosition = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
+    movingTop = movingTop - 45
 
     self.settingsControlIndividualPresets.dropdownSelectMember = EMAHelperSettings:CreateDropdown(self.settingsControlIndividualPresets, 300, left, movingTop, "Select Shaman to Manage")
     self.settingsControlIndividualPresets.dropdownSelectMember:SetCallback("OnValueChanged", function(w, e, v) 
@@ -439,6 +443,16 @@ function EMA_Totems:SettingsRefreshPresets()
         self.settingsControlIndividualPresets.checkBoxShowIndividualHandles:SetValue(self.db.showIndividualPresetHandles)
         self.settingsControlIndividualPresets.checkBoxHandlesOnHover:SetValue(self.db.presetHandlesOnHover)
         
+        local layout = self.db.barLayout or "Horizontal"
+        local posList = {}
+        if layout == "Horizontal" then
+            posList = { ["LeftAbove"] = "Left", ["RightBelow"] = "Right" }
+        else
+            posList = { ["LeftAbove"] = "Above", ["RightBelow"] = "Below" }
+        end
+        self.settingsControlIndividualPresets.dropdownPresetPosition:SetList(posList)
+        self.settingsControlIndividualPresets.dropdownPresetPosition:SetValue(self.db.presetButtonPosition or "LeftAbove")
+
         local shamans = { [""] = "Select Shaman..." }
         for index, characterName in EMAApi.TeamListOrdered() do
             local class, _ = EMAApi.GetClass(characterName)
