@@ -101,6 +101,7 @@ EMA_Totems.settings = {
         castSequences = {},
         teamBarsPos = { point = "CENTER", x = 0, y = 0 },
         sequenceKeybind = "",
+        presets = {},
         frameBackgroundColourR = 0.1, frameBackgroundColourG = 0.1, frameBackgroundColourB = 0.1, frameBackgroundColourA = 0.7,
         frameBorderColourR = 0.5, frameBorderColourG = 0.5, frameBorderColourB = 0.5, frameBorderColourA = 1.0,
     }
@@ -550,6 +551,7 @@ function EMA_Totems:SettingsCreate()
     movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight()
 
     self:EMAModuleInitialize(self.settingsControl.widgetSettings.frame)
+    self:PresetsSettingsCreate()
     self:SettingsRefresh()
     self.settingsControl.widgetSettings.content:SetHeight(-movingTop + 20)
     
@@ -637,11 +639,11 @@ function EMA_Totems:SettingsRefresh()
         self.settingsControl.editBoxSelectedShaman:SetDisabled(onlyTimers)
         
         self.settingsControl.colorBackground:SetColor(db.frameBackgroundColourR or 1, db.frameBackgroundColourG or 1, db.frameBackgroundColourB or 1, db.frameBackgroundColourA or 1)
-        self.settingsControl.colorBorder:SetColor(db.frameBorderColourR or 1, db.frameBorderColourG or 1, db.frameBorderColourB or 1, db.frameBorderColourA or 1)
-        
-        self:SettingsSequenceListScrollRefresh()
-    end
-end
+                self.settingsControl.colorBorder:SetColor(db.frameBorderColourR or 1, db.frameBorderColourG or 1, db.frameBorderColourB or 1, db.frameBorderColourA or 1)
+                self:SettingsSequenceListScrollRefresh()
+                self:SettingsPresetListScrollRefresh()
+            end
+        end
 
 function EMA_Totems:OnEMAProfileChanged() self:SettingsRefresh(); ns.UI:RefreshBars() end
 function EMA_Totems:BeforeEMAProfileChanged() end
