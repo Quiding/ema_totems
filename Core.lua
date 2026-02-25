@@ -102,6 +102,7 @@ EMA_Totems.settings = {
         teamBarsPos = { point = "CENTER", x = 0, y = 0 },
         sequenceKeybind = "",
         presets = {},
+        teamPresets = {}, -- [presetName] = { [charName] = { totems = { Fire=id, ... }, sequence="..." } }
         frameBackgroundColourR = 0.1, frameBackgroundColourG = 0.1, frameBackgroundColourB = 0.1, frameBackgroundColourA = 0.7,
         frameBorderColourR = 0.5, frameBorderColourG = 0.5, frameBorderColourB = 0.5, frameBorderColourA = 1.0,
     }
@@ -638,12 +639,12 @@ function EMA_Totems:SettingsRefresh()
         self.settingsControl.buttonSetKeybind:SetText(db.sequenceKeybind ~= "" and "Keybind: " .. db.sequenceKeybind or "Set Cast Totem Sequence Keybind")
         self.settingsControl.editBoxSelectedShaman:SetDisabled(onlyTimers)
         
-        self.settingsControl.colorBackground:SetColor(db.frameBackgroundColourR or 1, db.frameBackgroundColourG or 1, db.frameBackgroundColourB or 1, db.frameBackgroundColourA or 1)
-                self.settingsControl.colorBorder:SetColor(db.frameBorderColourR or 1, db.frameBorderColourG or 1, db.frameBorderColourB or 1, db.frameBorderColourA or 1)
-                self:SettingsSequenceListScrollRefresh()
-                self:SettingsPresetListScrollRefresh()
-            end
-        end
+        self.settingsControl.colorBackground:SetColor(db.frameBackgroundColourR or 1, db.frameBackgroundColourG or 1, db.frameBackgroundColourB or 0.1, db.frameBackgroundColourA or 0.7)
+        self.settingsControl.colorBorder:SetColor(db.frameBorderColourR or 0.5, db.frameBorderColourG or 0.5, db.frameBorderColourB or 0.5, db.frameBorderColourA or 1.0)
+        self:SettingsSequenceListScrollRefresh()
+        self:SettingsRefreshPresets()
+    end
+end
 
 function EMA_Totems:OnEMAProfileChanged() self:SettingsRefresh(); ns.UI:RefreshBars() end
 function EMA_Totems:BeforeEMAProfileChanged() end
