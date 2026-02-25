@@ -108,6 +108,12 @@ end
 local function ShowSelector(slotBtn, shamanName, slot)
     if EMA_Totems.db and EMA_Totems.db.onlyTimers then return end
     
+    if selector:IsShown() and selector.lastAnchor == slotBtn then
+        selector:Hide()
+        return
+    end
+    selector.lastAnchor = slotBtn
+    
     local list = totemLists[slot]
     for _, item in ipairs(selector.items) do item:Hide() end
     
@@ -169,6 +175,12 @@ end
 
 local function ShowPresetSelector(anchorBtn, charName, isTeam)
     if not EMA_Totems.db or not EMA_Totems.db.showPresets then return end
+    
+    if presetSelector:IsShown() and presetSelector.lastAnchor == anchorBtn then
+        presetSelector:Hide()
+        return
+    end
+    presetSelector.lastAnchor = anchorBtn
     
     local list = {}
     if isTeam then
@@ -303,7 +315,7 @@ local function CreateTotemBar(shamanName, parent)
 
         b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         b:SetScript("PostClick", function(self, button)
-            if button == "RightButton" then
+            if button == "LeftButton" then
                 ShowSelector(self, shamanName, slot)
             end
         end)
@@ -850,8 +862,8 @@ function UI:UpdateMacros()
         for slot, b in pairs(myBar.buttons) do
             local totem = s[slot]
             if totem then
-                b:SetAttribute("type1", "spell")
-                b:SetAttribute("spell1", GetName(totem, ""))
+                b:SetAttribute("type2", "spell")
+                b:SetAttribute("spell2", GetName(totem, ""))
             end
         end
     end
