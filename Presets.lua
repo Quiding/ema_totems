@@ -517,3 +517,96 @@ function EMA_Totems:SettingsRefreshPresets()
         self:SettingsTeamMemberListScrollRefresh()
     end
 end
+
+-- -----------------------------------------------------------------------
+-- IMPORT / EXPORT
+-- -----------------------------------------------------------------------
+
+function EMA_Totems:ImportExportSettingsCreate()
+    self.settingsControlImportExport = {}
+    local EMAHelperSettings = LibStub("EMAHelperSettings-1.0")
+    
+    EMAHelperSettings:CreateSettings(self.settingsControlImportExport, "Import / Export", "Totems", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga", 16)
+    
+    local top, left = EMAHelperSettings:TopOfSettings(), EMAHelperSettings:LeftOfSettings()
+    local headingHeight, headingWidth = EMAHelperSettings:HeadingHeight(), EMAHelperSettings:HeadingWidth(true)
+    local movingTop = top
+    
+    EMAHelperSettings:CreateHeading(self.settingsControlImportExport, "Data Import / Export", movingTop, false)
+    movingTop = movingTop - headingHeight - 10
+
+    self.settingsControlImportExport.labelInfo = EMAHelperSettings:CreateLabel(self.settingsControlImportExport, headingWidth, left, movingTop, "Use the boxes below to export or import configuration strings.")
+    movingTop = movingTop - 30
+
+    -- 1. Totem Settings
+    EMAHelperSettings:CreateHeading(self.settingsControlImportExport, "1. Main Totem Settings", movingTop, false)
+    movingTop = movingTop - headingHeight - 5
+    self.settingsControlImportExport.editBoxSettings = EMAHelperSettings:CreateMultiEditBox(self.settingsControlImportExport, headingWidth, left, movingTop, "Main Settings Data", 4)
+    movingTop = movingTop - 80
+    self.settingsControlImportExport.buttonExportSettings = EMAHelperSettings:CreateButton(self.settingsControlImportExport, headingWidth/2 - 5, left, movingTop, "Export Settings", function()
+        local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
+        local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
+        local settings = EMAUtilities:CopyTable(self.db)
+        settings.presets = nil; settings.teamPresets = nil -- Exclude presets
+        local str = LibAceSerializer:Serialize(settings)
+        self.settingsControlImportExport.editBoxSettings.editBox:SetText(str); self.settingsControlImportExport.editBoxSettings.editBox:HighlightText(); self.settingsControlImportExport.editBoxSettings.editBox:SetFocus()
+    end)
+    self.settingsControlImportExport.buttonImportSettings = EMAHelperSettings:CreateButton(self.settingsControlImportExport, headingWidth/2 - 5, left + headingWidth/2 + 5, movingTop, "Import Settings", function()
+        local str = self.settingsControlImportExport.editBoxSettings.editBox:GetText()
+        if str and str ~= "" then
+            local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
+            local success, data = LibAceSerializer:Deserialize(str)
+            if success and type(data) == "table" then
+                local p, tp = self.db.presets, self.db.teamPresets
+                for k, v in pairs(data) do self.db[k] = v end
+                self.db.presets, self.db.teamPresets = p, tp
+                self:Print("Main settings imported successfully!"); ns.UI:RefreshBars(); self:SettingsRefresh()
+            else self:Print("Error: Invalid settings import string.") end
+        end
+    end)
+    movingTop = movingTop - 40
+
+    -- 2. Individual Presets
+    EMAHelperSettings:CreateHeading(self.settingsControlImportExport, "2. Individual Presets", movingTop, false)
+    movingTop = movingTop - headingHeight - 5
+    self.settingsControlImportExport.editBoxPresets = EMAHelperSettings:CreateMultiEditBox(self.settingsControlImportExport, headingWidth, left, movingTop, "Individual Presets Data", 4)
+    movingTop = movingTop - 80
+    self.settingsControlImportExport.buttonExportPresets = EMAHelperSettings:CreateButton(self.settingsControlImportExport, headingWidth/2 - 5, left, movingTop, "Export Ind. Presets", function()
+        local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
+        local str = LibAceSerializer:Serialize(self.db.presets)
+        self.settingsControlImportExport.editBoxPresets.editBox:SetText(str); self.settingsControlImportExport.editBoxPresets.editBox:HighlightText(); self.settingsControlImportExport.editBoxPresets.editBox:SetFocus()
+    end)
+    self.settingsControlImportExport.buttonImportPresets = EMAHelperSettings:CreateButton(self.settingsControlImportExport, headingWidth/2 - 5, left + headingWidth/2 + 5, movingTop, "Import Ind. Presets", function()
+        local str = self.settingsControlImportExport.editBoxPresets.editBox:GetText()
+        if str and str ~= "" then
+            local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
+            local success, data = LibAceSerializer:Deserialize(str)
+            if success and type(data) == "table" then self.db.presets = data; self:Print("Individual presets imported successfully!"); self:SettingsRefresh()
+            else self:Print("Error: Invalid individual presets import string.") end
+        end
+    end)
+    movingTop = movingTop - 40
+
+    -- 3. Team Presets
+    EMAHelperSettings:CreateHeading(self.settingsControlImportExport, "3. Team Presets", movingTop, false)
+    movingTop = movingTop - headingHeight - 5
+    self.settingsControlImportExport.editBoxTeamPresets = EMAHelperSettings:CreateMultiEditBox(self.settingsControlImportExport, headingWidth, left, movingTop, "Team Presets Data", 4)
+    movingTop = movingTop - 80
+    self.settingsControlImportExport.buttonExportTeamPresets = EMAHelperSettings:CreateButton(self.settingsControlImportExport, headingWidth/2 - 5, left, movingTop, "Export Team Presets", function()
+        local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
+        local str = LibAceSerializer:Serialize(self.db.teamPresets)
+        self.settingsControlImportExport.editBoxTeamPresets.editBox:SetText(str); self.settingsControlImportExport.editBoxTeamPresets.editBox:HighlightText(); self.settingsControlImportExport.editBoxTeamPresets.editBox:SetFocus()
+    end)
+    self.settingsControlImportExport.buttonImportTeamPresets = EMAHelperSettings:CreateButton(self.settingsControlImportExport, headingWidth/2 - 5, left + headingWidth/2 + 5, movingTop, "Import Team Presets", function()
+        local str = self.settingsControlImportExport.editBoxTeamPresets.editBox:GetText()
+        if str and str ~= "" then
+            local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
+            local success, data = LibAceSerializer:Deserialize(str)
+            if success and type(data) == "table" then self.db.teamPresets = data; self:Print("Team presets imported successfully!"); self:SettingsRefresh()
+            else self:Print("Error: Invalid team presets import string.") end
+        end
+    end)
+    movingTop = movingTop - 40
+
+    self.settingsControlImportExport.widgetSettings.content:SetHeight(-movingTop + 20)
+end

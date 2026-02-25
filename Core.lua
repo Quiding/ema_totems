@@ -569,6 +569,7 @@ function EMA_Totems:SettingsCreate()
     self:EMAModuleInitialize(self.settingsControl.widgetSettings.frame)
     self:IndividualPresetsSettingsCreate()
     self:TeamPresetsSettingsCreate()
+    self:ImportExportSettingsCreate()
     self:SettingsRefresh()
     self.settingsControl.widgetSettings.content:SetHeight(-movingTop + 20)
     
