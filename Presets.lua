@@ -251,9 +251,35 @@ function EMA_Totems:PresetsSettingsCreate()
     
     -- Icon Display and Change
     self.settingsControlPresets.displayPresetIcon = EMAHelperSettings:Icon(self.settingsControlPresets, 42, 42, "Interface\\Icons\\INV_Misc_QuestionMark", left + 310, movingTop, "Preset Icon", function() 
-        self:Print("To change the icon, drag a totem, spell, or item here.")
+        self:Print("To change the icon, drag a totem, spell, or item here, or type a name/ID in the box.")
     end, "Drag a spell or item here to change the preset icon.")
     
+    self.settingsControlPresets.editBoxPresetIcon = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 150, left + 360, movingTop, "Icon Name/ID")
+    self.settingsControlPresets.editBoxPresetIcon:SetCallback("OnEnterPressed", function(w, e, v)
+        if not self.selectedTeamPresetToEdit then return end
+        local val = v:trim()
+        if val == "" then return end
+        
+        local icon
+        if tonumber(val) then
+            icon = tonumber(val)
+        else
+            -- Try to get icon from spell name
+            icon = select(3, GetSpellInfo(val))
+            if not icon then
+                -- Try item name
+                icon = select(10, GetItemInfo(val))
+            end
+        end
+        
+        if icon then
+            self.db.teamPresets[self.selectedTeamPresetToEdit].icon = icon
+            self:SettingsRefresh()
+        else
+            self:Print("Error: Could not find icon for: " .. val)
+        end
+    end)
+
     local iconFrame = self.settingsControlPresets.displayPresetIcon.frame
     iconFrame:SetScript("OnReceiveDrag", function()
         if not self.selectedTeamPresetToEdit then return end
@@ -537,9 +563,12 @@ function EMA_Totems:SettingsRefreshPresets()
     if self.selectedTeamPresetToEdit then
         local icon = self.db.teamPresets[self.selectedTeamPresetToEdit].icon or "Interface\\Icons\\Spell_Totem_WardOfDraining"
         self.settingsControlPresets.displayPresetIcon:SetImage(icon)
+        self.settingsControlPresets.editBoxPresetIcon:SetDisabled(false)
     else
         self.settingsControlPresets.displayPresetIcon:SetImage("Interface\\Icons\\INV_Misc_QuestionMark")
+        self.settingsControlPresets.editBoxPresetIcon:SetDisabled(true)
     end
+    self.settingsControlPresets.editBoxPresetIcon.editbox:SetText("")
 
     -- Update Member Editor
     if self.selectedMemberToEdit then
