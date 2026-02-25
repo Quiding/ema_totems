@@ -555,26 +555,6 @@ function UI:RefreshBars()
     self.masterFrame:SetScale(db.barScale or 1.0)
     self.masterFrame:SetAlpha(db.barAlpha or 1.0)
     
-    if db.breakUpBars then
-        self.masterFrame:SetBackdrop(nil)
-        self.masterFrame.handle:Hide()
-    else
-        ApplySkin(self.masterFrame)
-        if not db.lockBars then
-            self.masterFrame.handle:Show()
-        else
-            self.masterFrame.handle:Hide()
-        end
-    end
-
-    -- Team Preset Button Visibility
-    if db.showPresets and db.showTeamPresetHandle and not db.breakUpBars then
-        self.masterFrame.teamPresetBtn:Show()
-        if db.presetHandlesOnHover then self.masterFrame.teamPresetBtn:SetAlpha(0) else self.masterFrame.teamPresetBtn:SetAlpha(1) end
-    else
-        self.masterFrame.teamPresetBtn:Hide()
-    end
-    
     local shamanList = {}
     
     -- Use Team list and check online status (be more permissive with online check)
@@ -618,11 +598,6 @@ function UI:RefreshBars()
         end
     end
 
-    if not self.hasAnnounced and #shamanList > 0 then
-        EMA_Totems:Print("Totem bars initialized ("..#shamanList.." Shaman found).")
-        self.hasAnnounced = true
-    end
-
     local order = EMA_Totems.db.barOrder
     if order == "NameAsc" then
         table.sort(shamanList, function(a, b) return a.name < b.name end)
@@ -644,7 +619,59 @@ function UI:RefreshBars()
         end)
     end
 
+    if db.breakUpBars then
+        self.masterFrame:SetBackdrop(nil)
+        self.masterFrame.handle:Hide()
+    else
+        ApplySkin(self.masterFrame)
+        if not db.lockBars then
+            self.masterFrame.handle:Show()
+        else
+            self.masterFrame.handle:Hide()
+        end
+    end
+
+    -- Team Preset Button Visibility and Parenting
+    if db.showPresets and db.showTeamPresetHandle then
+        if db.breakUpBars then
+            -- Find first shaman bar that we are about to show
+            local firstShaman = shamanList[1] and shamanList[1].name
+            if firstShaman and not self.teamBars[firstShaman] then
+                self.teamBars[firstShaman] = CreateTotemBar(firstShaman, self.masterFrame)
+            end
+            local firstBar = firstShaman and self.teamBars[firstShaman]
+            if firstBar then
+                self.masterFrame.teamPresetBtn:SetParent(firstBar)
+                self.masterFrame.teamPresetBtn:ClearAllPoints()
+                -- Position it to the left/top of the bar
+                if db.barLayout == "Vertical" then
+                    self.masterFrame.teamPresetBtn:SetPoint("BOTTOM", firstBar, "TOP", 0, 2)
+                else
+                    self.masterFrame.teamPresetBtn:SetPoint("RIGHT", firstBar, "LEFT", -2, 0)
+                end
+                self.masterFrame.teamPresetBtn:Show()
+                self.masterFrame.teamPresetBtn:SetScale(1.0)
+            else
+                self.masterFrame.teamPresetBtn:Hide()
+            end
+        else
+            self.masterFrame.teamPresetBtn:SetParent(self.masterFrame)
+            self.masterFrame.teamPresetBtn:ClearAllPoints()
+            self.masterFrame.teamPresetBtn:SetPoint("BOTTOMRIGHT", self.masterFrame, "BOTTOMLEFT", 0, 0)
+            self.masterFrame.teamPresetBtn:Show()
+            self.masterFrame.teamPresetBtn:SetScale(1.0)
+        end
+        if db.presetHandlesOnHover then self.masterFrame.teamPresetBtn:SetAlpha(0) else self.masterFrame.teamPresetBtn:SetAlpha(1) end
+    else
+        self.masterFrame.teamPresetBtn:Hide()
+    end
+    
     for name, bar in pairs(self.teamBars) do bar:Hide() end
+
+    if not self.hasAnnounced and #shamanList > 0 then
+        EMA_Totems:Print("Totem bars initialized ("..#shamanList.." Shaman found).")
+        self.hasAnnounced = true
+    end
 
     local shamanCount = 0
     local currentX = 0
