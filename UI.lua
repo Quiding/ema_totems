@@ -257,10 +257,12 @@ local function CreateTotemBar(shamanName, parent)
     -- Preset Handle Button
     f.presetBtn = CreateFrame("Button", nil, f, "BackdropTemplate")
     f.presetBtn:SetBackdrop({ bgFile = "Interface\\ChatFrame\\ChatFrameBackground", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-    f.presetBtn:SetBackdropColor(0, 0, 0, 1); f.presetBtn:SetBackdropBorderColor(0.2, 0.2, 0.2, 1)
-    f.presetBtn.icon = f.presetBtn:CreateTexture(nil, "ARTWORK"); f.presetBtn.icon:SetAllPoints(f.presetBtn)
-    f.presetBtn.icon:SetTexture("Interface\\Icons\\INV_Misc_Book_09") -- Book icon for presets
-    f.presetBtn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    f.presetBtn:SetBackdropColor(0, 0, 0, 1); f.presetBtn:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+    f.presetBtn.text = f.presetBtn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+    f.presetBtn.text:SetPoint("CENTER", 0, 0)
+    f.presetBtn.text:SetText("P")
+    f.presetBtn.text:SetTextColor(1, 1, 1, 1)
+    
     f.presetBtn:SetScript("OnClick", function() ShowPresetSelector(f.presetBtn, shamanName, false) end)
     f.presetBtn:SetScript("OnEnter", function() 
         GameTooltip:SetOwner(f.presetBtn, "ANCHOR_TOP")
@@ -398,6 +400,8 @@ local function CreateTotemBar(shamanName, parent)
             else self.presetBtn:SetPoint("TOPLEFT", 0, -iconIdx*(size + margin) - nameHeight) end
             iconIdx = iconIdx + 1
             if db.presetHandlesOnHover then self.presetBtn:SetAlpha(0) else self.presetBtn:SetAlpha(1) end
+            -- Scale the 'P' text
+            self.presetBtn.text:SetFont(SharedMedia:Fetch("font", db.fontStyle or "Arial Narrow"), size * 0.7, "OUTLINE")
         else self.presetBtn:Hide() end
 
         local slots = {"Fire", "Air", "Water", "Earth"}
@@ -486,10 +490,11 @@ function UI:Initialize()
         self.masterFrame.teamPresetBtn:SetSize(16, 16)
         self.masterFrame.teamPresetBtn:SetPoint("BOTTOMRIGHT", self.masterFrame, "BOTTOMLEFT", 0, 0)
         self.masterFrame.teamPresetBtn:SetBackdrop({ bgFile = "Interface\\ChatFrame\\ChatFrameBackground", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-        self.masterFrame.teamPresetBtn:SetBackdropColor(0, 0.8, 0, 1); self.masterFrame.teamPresetBtn:SetBackdropBorderColor(0, 0.4, 0, 1)
-        self.masterFrame.teamPresetBtn.icon = self.masterFrame.teamPresetBtn:CreateTexture(nil, "ARTWORK"); self.masterFrame.teamPresetBtn.icon:SetAllPoints(self.masterFrame.teamPresetBtn)
-        self.masterFrame.teamPresetBtn.icon:SetTexture("Interface\\Icons\\INV_Misc_Book_09")
-        self.masterFrame.teamPresetBtn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        self.masterFrame.teamPresetBtn:SetBackdropColor(0, 0, 0, 1); self.masterFrame.teamPresetBtn:SetBackdropBorderColor(0.3, 0.3, 0.3, 1)
+        self.masterFrame.teamPresetBtn.text = self.masterFrame.teamPresetBtn:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+        self.masterFrame.teamPresetBtn.text:SetPoint("CENTER", 0, 0)
+        self.masterFrame.teamPresetBtn.text:SetText("P")
+        self.masterFrame.teamPresetBtn.text:SetTextColor(1, 1, 1, 1)
         
         self.masterFrame.teamPresetBtn:SetScript("OnClick", function() ShowPresetSelector(self.masterFrame.teamPresetBtn, nil, true) end)
         self.masterFrame.teamPresetBtn:SetScript("OnEnter", function() 
