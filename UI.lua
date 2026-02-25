@@ -138,6 +138,85 @@ local function ShowSelector(slotBtn, shamanName, slot)
 end
 
 -----------------------------------------------------------------------
+-- PRESET SELECTOR FRAME
+-----------------------------------------------------------------------
+local presetSelector = CreateFrame("Frame", "EMATotemsPresetSelector", UIParent, "BackdropTemplate")
+presetSelector:SetSize(200, 250)
+presetSelector:SetFrameStrata("HIGH")
+presetSelector:EnableMouse(true)
+presetSelector:Hide()
+
+presetSelector.timeSinceMouseOver = 0
+presetSelector:SetScript("OnUpdate", function(self, elapsed)
+    if self:IsMouseOver() then self.timeSinceMouseOver = 0
+    else
+        self.timeSinceMouseOver = self.timeSinceMouseOver + elapsed
+        if self.timeSinceMouseOver > 2 then self:Hide(); self.timeSinceMouseOver = 0 end
+    end
+end)
+
+presetSelector.items = {}
+
+local function CreatePresetItem(i)
+    local b = CreateFrame("Button", nil, presetSelector)
+    b:SetSize(190, 24)
+    b:SetPoint("TOPLEFT", 5, -5 - ((i-1) * 26))
+    b.hl = b:CreateTexture(nil, "HIGHLIGHT"); b.hl:SetAllPoints(); b.hl:SetColorTexture(1, 1, 1, 0.2)
+    b.icon = b:CreateTexture(nil, "ARTWORK"); b.icon:SetSize(20, 20); b.icon:SetPoint("LEFT", 5, 0); b.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    b.text = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall"); b.text:SetPoint("LEFT", 30, 0); b.text:SetJustifyH("LEFT")
+    return b
+end
+
+local function ShowPresetSelector(anchorBtn, charName, isTeam)
+    if not EMA_Totems.db or not EMA_Totems.db.showPresets then return end
+    
+    local list = {}
+    if isTeam then
+        for name, data in pairs(EMA_Totems.db.teamPresets) do
+            table.insert(list, { name = name, icon = data.icon, isTeam = true })
+        end
+    else
+        local charPresets = EMA_Totems.db.presets[charName]
+        if charPresets then
+            for name, data in pairs(charPresets) do
+                table.insert(list, { name = name, icon = data.icon, charName = charName, isTeam = false })
+            end
+        end
+    end
+    
+    table.sort(list, function(a, b) return a.name < b.name end)
+    
+    for _, item in ipairs(presetSelector.items) do item:Hide() end
+    
+    if #list == 0 then return end
+
+    for i, presetInfo in ipairs(list) do
+        if not presetSelector.items[i] then presetSelector.items[i] = CreatePresetItem(i) end
+        local b = presetSelector.items[i]
+        b.text:SetText(presetInfo.name)
+        ApplyFontStyle(b.text)
+        b.icon:SetTexture(presetInfo.icon or "Interface\\Icons\\Spell_Totem_WardOfDraining")
+        
+        b:SetScript("OnClick", function()
+            if presetInfo.isTeam then
+                EMA_Totems:ApplyTeamPreset(presetInfo.name)
+            else
+                EMA_Totems:ApplyIndividualPreset(presetInfo.charName, presetInfo.name)
+            end
+            presetSelector:Hide()
+        end)
+        b:Show()
+    end
+    
+    presetSelector:SetHeight(#list * 26 + 10)
+    presetSelector:ClearAllPoints()
+    presetSelector:SetPoint("BOTTOMLEFT", anchorBtn, "TOPLEFT", 0, 5)
+    presetSelector:SetScale(EMA_Totems.db and EMA_Totems.db.barScale or 1.0)
+    ApplySelectorSkin(presetSelector)
+    presetSelector:Show()
+end
+
+-----------------------------------------------------------------------
 -- BAR CREATION
 -----------------------------------------------------------------------
 local function CreateTotemBar(shamanName, parent)
@@ -174,6 +253,21 @@ local function CreateTotemBar(shamanName, parent)
     -- Name label
     f.nameLabel = f:CreateFontString(nil, "OVERLAY", "GameFontHighlightSmall")
     f.nameLabel:SetText(Ambiguate(shamanName, "short"))
+
+    -- Preset Handle Button
+    f.presetBtn = CreateFrame("Button", nil, f, "BackdropTemplate")
+    f.presetBtn:SetBackdrop({ bgFile = "Interface\\ChatFrame\\ChatFrameBackground", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+    f.presetBtn:SetBackdropColor(0, 0, 0, 1); f.presetBtn:SetBackdropBorderColor(0.2, 0.2, 0.2, 1)
+    f.presetBtn.icon = f.presetBtn:CreateTexture(nil, "ARTWORK"); f.presetBtn.icon:SetAllPoints(f.presetBtn)
+    f.presetBtn.icon:SetTexture("Interface\\Icons\\INV_Misc_Book_09") -- Book icon for presets
+    f.presetBtn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    f.presetBtn:SetScript("OnClick", function() ShowPresetSelector(f.presetBtn, shamanName, false) end)
+    f.presetBtn:SetScript("OnEnter", function() 
+        GameTooltip:SetOwner(f.presetBtn, "ANCHOR_TOP")
+        GameTooltip:SetText("Individual Presets - " .. Ambiguate(shamanName, "short"))
+        GameTooltip:Show()
+    end)
+    f.presetBtn:SetScript("OnLeave", function() GameTooltip:Hide() end)
 
     local slots = {"Fire", "Air", "Water", "Earth"}
     f.buttons = {}
@@ -277,73 +371,62 @@ local function CreateTotemBar(shamanName, parent)
         local layout = db.barLayout or "Horizontal"
         
         local hasSeq = self.seqBtn and not onlyTimers
-        local numIcons = hasSeq and 5 or 4
+        local hasPreset = db.showPresets and db.showIndividualPresetHandles
+        local numIcons = 4 + (hasSeq and 1 or 0) + (hasPreset and 1 or 0)
         
         ApplyFontStyle(self.nameLabel)
         local nameWidth = showNames and (self.nameLabel:GetStringWidth() + 4) or 0
         
+        local iconsBoundingSize = (size * numIcons) + (margin * (numIcons - 1))
+        
         if layout == "Horizontal" then
-            local iconsWidth = (size * numIcons) + (margin * (numIcons - 1))
-            local totalWidth = math.max(nameWidth, iconsWidth)
-            self:SetSize(math.max(1, totalWidth), size + nameHeight)
+            self:SetSize(math.max(1, math.max(nameWidth, iconsBoundingSize)), size + nameHeight)
         else
-            local iconsHeight = (size * numIcons) + (margin * (numIcons - 1))
-            local totalHeight = iconsHeight + nameHeight
-            self:SetSize(math.max(size, nameWidth), math.max(1, totalHeight))
+            self:SetSize(math.max(size, nameWidth), iconsBoundingSize + nameHeight)
         end
 
         -- Handle
-        if db.breakUpBars and not db.lockBars then
-            self.handle:Show()
-        else
-            self.handle:Hide()
-        end
-        self.handle:SetWidth(10)
-        self.handle:SetHeight(self:GetHeight())
-        self.handle:ClearAllPoints()
-        self.handle:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, 0)
+        self.handle:SetShown(db.breakUpBars and not db.lockBars); self.handle:SetWidth(10); self.handle:SetHeight(self:GetHeight()); self.handle:ClearAllPoints(); self.handle:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, 0)
+        self.nameLabel:ClearAllPoints(); if showNames then self.nameLabel:Show(); self.nameLabel:SetJustifyH("LEFT"); self.nameLabel:SetPoint("TOPLEFT", 0, 0) else self.nameLabel:Hide() end
 
-        self.nameLabel:ClearAllPoints()
-        if showNames then
-            self.nameLabel:Show()
-            self.nameLabel:SetJustifyH("LEFT")
-            self.nameLabel:SetPoint("TOPLEFT", 0, 0)
-        else
-            self.nameLabel:Hide()
-        end
+        local iconIdx = 0
+        
+        -- Individual Preset Button
+        if hasPreset then
+            self.presetBtn:Show(); self.presetBtn:SetSize(size, size); self.presetBtn:ClearAllPoints()
+            if layout == "Horizontal" then self.presetBtn:SetPoint("TOPLEFT", iconIdx*(size + margin), -nameHeight)
+            else self.presetBtn:SetPoint("TOPLEFT", 0, -iconIdx*(size + margin) - nameHeight) end
+            iconIdx = iconIdx + 1
+            if db.presetHandlesOnHover then self.presetBtn:SetAlpha(0) else self.presetBtn:SetAlpha(1) end
+        else self.presetBtn:Hide() end
 
         local slots = {"Fire", "Air", "Water", "Earth"}
         for i, slot in ipairs(slots) do
             local b = self.buttons[slot]
-            b:SetSize(size, size)
-            b:ClearAllPoints()
-            if layout == "Horizontal" then
-                b:SetPoint("BOTTOMLEFT", (i-1)*(size + margin), 0)
-            else
-                b:SetPoint("TOPLEFT", 0, -(i-1)*(size + margin) - nameHeight)
-            end
-            
-            -- Set Font
-            local fontFile = SharedMedia:Fetch("font", db.fontStyle)
-            b.timerText:SetFont(fontFile, db.timerFontSize or 16, "OUTLINE")
+            b:SetSize(size, size); b:ClearAllPoints()
+            if layout == "Horizontal" then b:SetPoint("TOPLEFT", iconIdx*(size + margin), -nameHeight)
+            else b:SetPoint("TOPLEFT", 0, -iconIdx*(size + margin) - nameHeight) end
+            iconIdx = iconIdx + 1
+            ApplyFontStyle(b.timerText); b.timerText:SetFont(SharedMedia:Fetch("font", db.fontStyle), db.timerFontSize or 16, "OUTLINE")
         end
         
         if self.seqBtn then
-            if onlyTimers then
-                self.seqBtn:Hide()
+            if onlyTimers then self.seqBtn:Hide()
             else
-                self.seqBtn:Show()
-                self.seqBtn:SetSize(size, size)
-                self.seqBtn:ClearAllPoints()
-                if layout == "Horizontal" then
-                    self.seqBtn:SetPoint("BOTTOMLEFT", 4*(size + margin), 0)
-                else
-                    self.seqBtn:SetPoint("TOPLEFT", 0, -4*(size + margin) - nameHeight)
-                end
+                self.seqBtn:Show(); self.seqBtn:SetSize(size, size); self.seqBtn:ClearAllPoints()
+                if layout == "Horizontal" then self.seqBtn:SetPoint("TOPLEFT", iconIdx*(size + margin), -nameHeight)
+                else self.seqBtn:SetPoint("TOPLEFT", 0, -iconIdx*(size + margin) - nameHeight) end
             end
         end
         ApplySkin(self)
     end
+
+    f:SetScript("OnEnter", function() 
+        if EMA_Totems.db.presetHandlesOnHover then f.presetBtn:SetAlpha(1) end
+    end)
+    f:SetScript("OnLeave", function() 
+        if EMA_Totems.db.presetHandlesOnHover then f.presetBtn:SetAlpha(0) end
+    end)
 
     f:UpdateLayout()
     return f
@@ -397,6 +480,31 @@ function UI:Initialize()
                 EMA_Totems.db.teamBarsPos = { point = point, relativePoint = relativePoint, x = x, y = y }
             end
         end)
+
+        -- Team Preset Button
+        self.masterFrame.teamPresetBtn = CreateFrame("Button", nil, self.masterFrame.handle, "BackdropTemplate")
+        self.masterFrame.teamPresetBtn:SetSize(10, 10)
+        self.masterFrame.teamPresetBtn:SetPoint("BOTTOM", self.masterFrame.handle, "BOTTOM", 0, 0)
+        self.masterFrame.teamPresetBtn:SetBackdrop({ bgFile = "Interface\\ChatFrame\\ChatFrameBackground", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
+        self.masterFrame.teamPresetBtn:SetBackdropColor(0, 1, 0, 1); self.masterFrame.teamPresetBtn:SetBackdropBorderColor(0, 0.5, 0, 1)
+        self.masterFrame.teamPresetBtn:SetScript("OnClick", function() ShowPresetSelector(self.masterFrame.teamPresetBtn, nil, true) end)
+        self.masterFrame.teamPresetBtn:SetScript("OnEnter", function() 
+            GameTooltip:SetOwner(self.masterFrame.teamPresetBtn, "ANCHOR_TOP")
+            GameTooltip:SetText("Team Presets")
+            GameTooltip:Show()
+            if EMA_Totems.db.presetHandlesOnHover then self.masterFrame.teamPresetBtn:SetAlpha(1) end
+        end)
+        self.masterFrame.teamPresetBtn:SetScript("OnLeave", function() 
+            GameTooltip:Hide()
+            if EMA_Totems.db.presetHandlesOnHover then self.masterFrame.teamPresetBtn:SetAlpha(0) end
+        end)
+        
+        self.masterFrame:SetScript("OnEnter", function() 
+            if EMA_Totems.db.presetHandlesOnHover and EMA_Totems.db.showTeamPresetHandle then self.masterFrame.teamPresetBtn:SetAlpha(1) end
+        end)
+        self.masterFrame:SetScript("OnLeave", function() 
+            if EMA_Totems.db.presetHandlesOnHover then self.masterFrame.teamPresetBtn:SetAlpha(0) end
+        end)
     end
     
     self:UpdatePositionFromDB()
@@ -425,6 +533,14 @@ function UI:RefreshBars()
         else
             self.masterFrame.handle:Hide()
         end
+    end
+
+    -- Team Preset Button Visibility
+    if db.showPresets and db.showTeamPresetHandle and not db.breakUpBars and not db.lockBars then
+        self.masterFrame.teamPresetBtn:Show()
+        if db.presetHandlesOnHover then self.masterFrame.teamPresetBtn:SetAlpha(0) else self.masterFrame.teamPresetBtn:SetAlpha(1) end
+    else
+        self.masterFrame.teamPresetBtn:Hide()
     end
     
     local shamanList = {}

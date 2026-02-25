@@ -155,6 +155,11 @@ function EMA_Totems:IndividualPresetsSettingsCreate()
     EMAHelperSettings:CreateHeading(self.settingsControlIndividualPresets, "Manage Individual Totem Presets", movingTop, false)
     movingTop = movingTop - headingHeight - 10
 
+    self.settingsControlIndividualPresets.checkBoxShowIndividualHandles = EMAHelperSettings:CreateCheckBox(self.settingsControlIndividualPresets, headingWidth, left, movingTop, "Show Individual Preset Buttons on Bars", function(w, e, v) self.db.showIndividualPresetHandles = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
+    movingTop = movingTop - 25
+    self.settingsControlIndividualPresets.checkBoxHandlesOnHover = EMAHelperSettings:CreateCheckBox(self.settingsControlIndividualPresets, headingWidth, left, movingTop, "Only show buttons on Mouse Over", function(w, e, v) self.db.presetHandlesOnHover = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
+    movingTop = movingTop - 35
+
     self.settingsControlIndividualPresets.dropdownSelectMember = EMAHelperSettings:CreateDropdown(self.settingsControlIndividualPresets, 300, left, movingTop, "Select Shaman to Manage")
     self.settingsControlIndividualPresets.dropdownSelectMember:SetCallback("OnValueChanged", function(w, e, v) 
         self.selectedShamanForIndividualPresets = v
@@ -280,9 +285,13 @@ function EMA_Totems:TeamPresetsSettingsCreate()
     local headingHeight, headingWidth = EMAHelperSettings:HeadingHeight(), EMAHelperSettings:HeadingWidth(true)
     local movingTop = top
     
-    EMAHelperSettings:CreateHeading(self.settingsControlTeamPresets, "Manage Team Totem Presets", movingTop, false)
-    movingTop = movingTop - headingHeight - 10
-    self.settingsControlTeamPresets.editBoxTeamPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlTeamPresets, 300, left, movingTop, "New Team Preset Name")
+        EMAHelperSettings:CreateHeading(self.settingsControlTeamPresets, "Manage Team Totem Presets", movingTop, false)
+        movingTop = movingTop - headingHeight - 10
+    
+        self.settingsControlTeamPresets.checkBoxShowTeamHandle = EMAHelperSettings:CreateCheckBox(self.settingsControlTeamPresets, headingWidth, left, movingTop, "Show Team Preset Button on Master Handle", function(w, e, v) self.db.showTeamPresetHandle = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
+        movingTop = movingTop - 35
+        
+        self.settingsControlTeamPresets.editBoxTeamPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlTeamPresets, 300, left, movingTop, "New Team Preset Name")
     self.settingsControlTeamPresets.buttonSaveTeamPreset = EMAHelperSettings:CreateButton(self.settingsControlTeamPresets, 80, left + 310, movingTop - 20, "Save", function()
         self:SaveTeamPreset(self.settingsControlTeamPresets.editBoxTeamPresetName.editbox:GetText())
         self.settingsControlTeamPresets.editBoxTeamPresetName.editbox:SetText("")
@@ -427,6 +436,9 @@ end
 
 function EMA_Totems:SettingsRefreshPresets()
     if self.settingsControlIndividualPresets then
+        self.settingsControlIndividualPresets.checkBoxShowIndividualHandles:SetValue(self.db.showIndividualPresetHandles)
+        self.settingsControlIndividualPresets.checkBoxHandlesOnHover:SetValue(self.db.presetHandlesOnHover)
+        
         local shamans = { [""] = "Select Shaman..." }
         for index, characterName in EMAApi.TeamListOrdered() do
             local class, _ = EMAApi.GetClass(characterName)
@@ -462,6 +474,7 @@ function EMA_Totems:SettingsRefreshPresets()
     end
     
     if self.settingsControlTeamPresets then
+        self.settingsControlTeamPresets.checkBoxShowTeamHandle:SetValue(self.db.showTeamPresetHandle)
         self:SettingsTeamPresetListScrollRefresh()
         local teamPresetList = {}
         for name, _ in pairs(self.db.teamPresets) do teamPresetList[name] = name end

@@ -103,6 +103,10 @@ EMA_Totems.settings = {
         sequenceKeybind = "",
         presets = {}, -- [charName] = { [presetName] = { totems = { Fire=id, ... }, sequence="..." } }
         teamPresets = {}, -- [presetName] = { members = { [charName] = { totems = { Fire=id, ... }, sequence="..." } }, icon=id }
+        showPresets = true,
+        showIndividualPresetHandles = true,
+        showTeamPresetHandle = true,
+        presetHandlesOnHover = false,
         frameBackgroundColourR = 0.1, frameBackgroundColourG = 0.1, frameBackgroundColourB = 0.1, frameBackgroundColourA = 0.7,
         frameBorderColourR = 0.5, frameBorderColourG = 0.5, frameBorderColourB = 0.5, frameBorderColourA = 1.0,
     }
@@ -479,6 +483,8 @@ function EMA_Totems:SettingsCreate()
     movingTop = movingTop - checkBoxHeight
     self.settingsControl.checkBoxSpamMacro = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Use Spam-safe Sequence (,null)", function(w, e, v) self.db.useSpamMacro = v; self:UpdateMacros(); self:SettingsRefresh() end)
     movingTop = movingTop - checkBoxHeight
+    self.settingsControl.checkBoxShowPresets = EMAHelperSettings:CreateCheckBox(self.settingsControl, headingWidth, left, movingTop, "Enable Totem Presets System", function(w, e, v) self.db.showPresets = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
+    movingTop = movingTop - checkBoxHeight
     self.settingsControl.dropdownOrder = EMAHelperSettings:CreateDropdown(self.settingsControl, 450, left, movingTop, "Bar Order")
     self.settingsControl.dropdownOrder:SetList({ ["NameAsc"] = "Name (Asc)", ["NameDesc"] = "Name (Desc)", ["EMAPosition"] = "EMA Team Order", ["RoleAsc"] = "Role (Tank > Healer > DPS)" })
     self.settingsControl.dropdownOrder:SetCallback("OnValueChanged", function(w, e, v) self.db.barOrder = v; ns.UI:RefreshBars(); self:SettingsRefresh() end)
@@ -620,6 +626,7 @@ function EMA_Totems:SettingsRefresh()
         self.settingsControl.checkBoxOnlyTimers:SetValue(onlyTimers)
         self.settingsControl.checkBoxSpamMacro:SetValue(db.useSpamMacro)
         self.settingsControl.checkBoxSpamMacro:SetDisabled(onlyTimers)
+        self.settingsControl.checkBoxShowPresets:SetValue(db.showPresets)
         self.settingsControl.checkBoxLockBars:SetValue(db.lockBars)
         self.settingsControl.checkBoxShowNames:SetValue(db.showNames)
         self.settingsControl.dropdownLayout:SetValue(db.barLayout or "Horizontal")
