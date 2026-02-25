@@ -6,7 +6,7 @@ Looking for other team-wide tracking? Check out [EMA Cooldowns](https://github.c
 
 **Note:** This addon likely requires your team to be in the same guild and utilize **guild communications** for settings synchronization, however, all timers are tracked via the **combat log** for high-precision updates.
 
-Is this AI slop? probably, but it seems to work
+**Disclaimer:** These addons are early-stage Gemini-generated prototypes and have not undergone extensive bug testing. Please use with caution and report any issues you find.
 
 ![totembar1](https://github.com/user-attachments/assets/68b88642-8df9-4ea5-87b2-bf26ba13f303) ![totembar2](https://github.com/user-attachments/assets/c9d3d5bf-6e3d-4f6c-ac91-ef4b638c924b)
 
