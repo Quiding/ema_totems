@@ -238,19 +238,26 @@ end
 function EMA_Totems:OnInitialize()
     PatchSharedMediaWidgets()
     self:SettingsCreate()
+    -- Ensure characterName is set even if EMAModuleInitialize hasn't finished everything
+    local realm = GetRealmName():gsub("%s+", "")
+    self.characterName = UnitName("player").."-"..realm
     self:RegisterChatCommand("et", "ChatCommand")
     self:RegisterChatCommand("ema-totems", "ChatCommand")
 end
 
 function EMA_Totems:UpdateTotemForShaman(shamanName, slot, totemID)
-    local myName = self.characterName
-    if shamanName == myName then
-        if not self.db.selectedTotems[myName] then self.db.selectedTotems[myName] = {} end
-        self.db.selectedTotems[myName][slot] = totemID
+    -- 1. Always update local DB first so UI updates immediately
+    if not self.db.selectedTotems[shamanName] then self.db.selectedTotems[shamanName] = {} end
+    self.db.selectedTotems[shamanName][slot] = totemID
+    
+    -- 2. Determine if it's for us or someone else
+    local myName = self.characterName or ""
+    if shamanName:lower() == myName:lower() then
         ns.UI:UpdateMyBar()
         self:PushSettingsToTeam()
     else
         self:EMASendCommandToToon(shamanName, "EMATotemsUpdate", slot, totemID)
+        ns.UI:RefreshBars()
     end
 end
 
@@ -408,11 +415,12 @@ end
 
 function EMA_Totems:EMAOnCommandReceived(characterName, commandName, ...)
     if commandName == "EMATotemsUpdate" then
-        local slot, totemName = ...
+        local slot, totemID = ...
         local myName = self.characterName
         if not self.db.selectedTotems[myName] then self.db.selectedTotems[myName] = {} end
-        self.db.selectedTotems[myName][slot] = totemName
+        self.db.selectedTotems[myName][slot] = totemID
         ns.UI:UpdateMyBar()
+        self:PushSettingsToTeam()
     elseif commandName == "EMATotemsReportClass" then
         local isShaman = ...
         if isShaman then self.shamanMembers[characterName] = true end
