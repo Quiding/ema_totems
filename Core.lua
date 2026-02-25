@@ -101,8 +101,8 @@ EMA_Totems.settings = {
         castSequences = {},
         teamBarsPos = { point = "CENTER", x = 0, y = 0 },
         sequenceKeybind = "",
-        presets = {},
-        teamPresets = {}, -- [presetName] = { [charName] = { totems = { Fire=id, ... }, sequence="..." } }
+        presets = {}, -- [charName] = { [presetName] = { totems = { Fire=id, ... }, sequence="..." } }
+        teamPresets = {}, -- [presetName] = { members = { [charName] = { totems = { Fire=id, ... }, sequence="..." } }, icon=id }
         frameBackgroundColourR = 0.1, frameBackgroundColourG = 0.1, frameBackgroundColourB = 0.1, frameBackgroundColourA = 0.7,
         frameBorderColourR = 0.5, frameBorderColourG = 0.5, frameBorderColourB = 0.5, frameBorderColourA = 1.0,
     }
