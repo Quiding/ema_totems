@@ -1,6 +1,21 @@
 local addonName, ns = ...
 local EMA_Totems = ns.EMA_Totems
 
+function EMA_Totems_Presets_Migration(db)
+    if not db or not db.teamPresets then return end
+    local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
+    for name, data in pairs(db.teamPresets) do
+        -- If data doesn't have 'members' key, it's the old format
+        if not data.members then
+            local members = EMAUtilities:CopyTable(data)
+            db.teamPresets[name] = {
+                members = members,
+                icon = "Interface\\Icons\\Spell_Totem_WardOfDraining"
+            }
+        end
+    end
+end
+
 -- -----------------------------------------------------------------------
 -- PRESET LOGIC
 -- -----------------------------------------------------------------------
@@ -97,17 +112,20 @@ function EMA_Totems:SaveTeamPreset(presetName)
         return
     end
 
-    self.db.teamPresets[presetName] = teamData
+    self.db.teamPresets[presetName] = {
+        members = teamData,
+        icon = "Interface\\Icons\\Spell_Totem_WardOfDraining"
+    }
     self:Print("Team Preset saved: " .. presetName)
     self:SettingsRefresh()
 end
 
 function EMA_Totems:ApplyTeamPreset(presetName)
-    local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
-    local teamData = self.db.teamPresets[presetName]
-    if not teamData then return end
+    local preset = self.db.teamPresets[presetName]
+    if not preset or not preset.members then return end
     
-    for characterName, data in pairs(teamData) do
+    local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
+    for characterName, data in pairs(preset.members) do
         if data.totems then
             self.db.selectedTotems[characterName] = EMAUtilities:CopyTable(data.totems)
         end
@@ -136,6 +154,7 @@ end
 -- -----------------------------------------------------------------------
 
 function EMA_Totems:PresetsSettingsCreate()
+    EMA_Totems_Presets_Migration(self.db)
     self.settingsControlPresets = {}
     local EMAHelperSettings = LibStub("EMAHelperSettings-1.0")
     
@@ -170,7 +189,7 @@ function EMA_Totems:PresetsSettingsCreate()
         listLeft = left, 
         listWidth = headingWidth, 
         rowHeight = 25, 
-        rowsToDisplay = 10, 
+        rowsToDisplay = 5, 
         columnsToDisplay = 3,
         columnInformation = {
             { width = 60, alignment = "LEFT" },
@@ -205,7 +224,7 @@ function EMA_Totems:PresetsSettingsCreate()
         listTop = movingTop, 
         listLeft = left, 
         listWidth = headingWidth, 
-        rowHeight = 25, 
+        rowHeight = 35, 
         rowsToDisplay = 5, 
         columnsToDisplay = 3,
         columnInformation = {
@@ -229,7 +248,37 @@ function EMA_Totems:PresetsSettingsCreate()
         self.selectedMemberToEdit = nil
         self:SettingsRefresh()
     end)
-    movingTop = movingTop - 40
+    
+    -- Icon Display and Change
+    self.settingsControlPresets.displayPresetIcon = EMAHelperSettings:Icon(self.settingsControlPresets, 42, 42, "Interface\\Icons\\INV_Misc_QuestionMark", left + 310, movingTop, "Preset Icon", function() 
+        self:Print("To change the icon, drag a totem, spell, or item here.")
+    end, "Drag a spell or item here to change the preset icon.")
+    
+    local iconFrame = self.settingsControlPresets.displayPresetIcon.frame
+    iconFrame:SetScript("OnReceiveDrag", function()
+        if not self.selectedTeamPresetToEdit then return end
+        local type, id, info = GetCursorInfo()
+        local icon
+        if type == "spell" then
+            icon = select(3, GetSpellInfo(id, info))
+        elseif type == "item" then
+            icon = select(10, GetItemInfo(id))
+        end
+        if icon then
+            self.db.teamPresets[self.selectedTeamPresetToEdit].icon = icon
+            ClearCursor()
+            self:SettingsRefresh()
+        end
+    end)
+    iconFrame:HookScript("OnMouseUp", function()
+        if not self.selectedTeamPresetToEdit then return end
+        local type, id, info = GetCursorInfo()
+        if type == "spell" or type == "item" then
+            iconFrame:GetScript("OnReceiveDrag")()
+        end
+    end)
+
+    movingTop = movingTop - 50
 
     self.settingsControlPresets.teamMemberList = {
         listFrameName = "EMATotemsTeamMemberListFrame", 
@@ -269,8 +318,11 @@ function EMA_Totems:PresetsSettingsCreate()
         if not self.selectedTeamPresetToEdit or not self.selectedMemberToEdit then return end
         local preset = self.db.teamPresets[self.selectedTeamPresetToEdit]
         if not preset then return end
-        preset[self.selectedMemberToEdit] = preset[self.selectedMemberToEdit] or {}
-        local m = preset[self.selectedMemberToEdit]
+        local m = preset.members[self.selectedMemberToEdit]
+        if not m then 
+            preset.members[self.selectedMemberToEdit] = { totems = {}, sequence = "" }
+            m = preset.members[self.selectedMemberToEdit]
+        end
         m.totems = m.totems or {}
         m.totems.Fire = self.settingsControlPresets.dropdownFire:GetValue()
         m.totems.Air = self.settingsControlPresets.dropdownAir:GetValue()
@@ -355,6 +407,18 @@ function EMA_Totems:SettingsTeamPresetListScrollRefresh()
         local dataIndex = i + offset
         if dataIndex <= #presets then
             local name = presets[dataIndex]
+            local preset = self.db.teamPresets[name]
+            
+            -- Setup icon if needed
+            if not row.presetIcon then
+                row.presetIcon = row.columns[1]:CreateTexture(nil, "ARTWORK")
+                row.presetIcon:SetSize(list.rowHeight - 4, list.rowHeight - 4)
+                row.presetIcon:SetPoint("LEFT", 4, 0)
+                row.presetIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+            end
+            row.presetIcon:SetTexture(preset.icon or "Interface\\Icons\\Spell_Totem_WardOfDraining")
+            row.columns[1].textString:SetPoint("LEFT", list.rowHeight + 4, 0)
+            
             row.columns[1].textString:SetText(name)
             row.columns[2].textString:SetText("|cff00ff00[Apply]|r")
             row.columns[3].textString:SetText("|cffff0000[Delete]|r")
@@ -414,7 +478,7 @@ function EMA_Totems:SettingsTeamMemberListScrollRefresh()
         if dataIndex <= #members then
             local name = members[dataIndex]
             local preset = self.db.teamPresets[self.selectedTeamPresetToEdit]
-            local data = preset and preset[name]
+            local data = preset and preset.members[name]
             local color = (name == self.selectedMemberToEdit) and "|cffffff00" or "|cffffffff"
             local info = ""
             if data and data.totems then
@@ -469,6 +533,14 @@ function EMA_Totems:SettingsRefreshPresets()
     self.settingsControlPresets.dropdownEditTeamPreset:SetList(teamPresetList)
     self.settingsControlPresets.dropdownEditTeamPreset:SetValue(self.selectedTeamPresetToEdit)
     
+    -- Update Icon
+    if self.selectedTeamPresetToEdit then
+        local icon = self.db.teamPresets[self.selectedTeamPresetToEdit].icon or "Interface\\Icons\\Spell_Totem_WardOfDraining"
+        self.settingsControlPresets.displayPresetIcon:SetImage(icon)
+    else
+        self.settingsControlPresets.displayPresetIcon:SetImage("Interface\\Icons\\INV_Misc_QuestionMark")
+    end
+
     -- Update Member Editor
     if self.selectedMemberToEdit then
         self.settingsControlPresets.labelEditMember:SetText("Editing Member: |cffffff00" .. Ambiguate(self.selectedMemberToEdit, "short"))
@@ -480,7 +552,7 @@ function EMA_Totems:SettingsRefreshPresets()
         self.settingsControlPresets.dropdownEarth:SetList(GetTotemListForDropdown("Earth"))
         
         local preset = self.db.teamPresets[self.selectedTeamPresetToEdit]
-        local data = preset and preset[self.selectedMemberToEdit]
+        local data = preset and preset.members[self.selectedMemberToEdit]
         if data then
             self.settingsControlPresets.dropdownFire:SetValue(data.totems and data.totems.Fire or "")
             self.settingsControlPresets.dropdownAir:SetValue(data.totems and data.totems.Air or "")
