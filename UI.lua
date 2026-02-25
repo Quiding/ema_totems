@@ -483,10 +483,14 @@ function UI:Initialize()
 
         -- Team Preset Button
         self.masterFrame.teamPresetBtn = CreateFrame("Button", nil, self.masterFrame.handle, "BackdropTemplate")
-        self.masterFrame.teamPresetBtn:SetSize(10, 10)
+        self.masterFrame.teamPresetBtn:SetSize(16, 16)
         self.masterFrame.teamPresetBtn:SetPoint("BOTTOM", self.masterFrame.handle, "BOTTOM", 0, 0)
         self.masterFrame.teamPresetBtn:SetBackdrop({ bgFile = "Interface\\ChatFrame\\ChatFrameBackground", edgeFile = "Interface\\Buttons\\WHITE8X8", edgeSize = 1 })
-        self.masterFrame.teamPresetBtn:SetBackdropColor(0, 1, 0, 1); self.masterFrame.teamPresetBtn:SetBackdropBorderColor(0, 0.5, 0, 1)
+        self.masterFrame.teamPresetBtn:SetBackdropColor(0, 0.8, 0, 1); self.masterFrame.teamPresetBtn:SetBackdropBorderColor(0, 0.4, 0, 1)
+        self.masterFrame.teamPresetBtn.icon = self.masterFrame.teamPresetBtn:CreateTexture(nil, "ARTWORK"); self.masterFrame.teamPresetBtn.icon:SetAllPoints(self.masterFrame.teamPresetBtn)
+        self.masterFrame.teamPresetBtn.icon:SetTexture("Interface\\Icons\\INV_Misc_Book_09")
+        self.masterFrame.teamPresetBtn.icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+        
         self.masterFrame.teamPresetBtn:SetScript("OnClick", function() ShowPresetSelector(self.masterFrame.teamPresetBtn, nil, true) end)
         self.masterFrame.teamPresetBtn:SetScript("OnEnter", function() 
             GameTooltip:SetOwner(self.masterFrame.teamPresetBtn, "ANCHOR_TOP")
@@ -536,7 +540,7 @@ function UI:RefreshBars()
     end
 
     -- Team Preset Button Visibility
-    if db.showPresets and db.showTeamPresetHandle and not db.breakUpBars and not db.lockBars then
+    if db.showPresets and db.showTeamPresetHandle and not db.breakUpBars then
         self.masterFrame.teamPresetBtn:Show()
         if db.presetHandlesOnHover then self.masterFrame.teamPresetBtn:SetAlpha(0) else self.masterFrame.teamPresetBtn:SetAlpha(1) end
     else
