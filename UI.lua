@@ -373,7 +373,9 @@ local function CreateTotemBar(shamanName, parent)
         local layout = db.barLayout or "Horizontal"
         
         local hasSeq = self.seqBtn and not onlyTimers
-        local hasPreset = db.showPresets and db.showIndividualPresetHandles
+        local charPresets = db.presets[self.shamanName]
+        local hasAnyPreset = charPresets and next(charPresets) ~= nil
+        local hasPreset = db.showPresets and db.showIndividualPresetHandles and hasAnyPreset
         local numIcons = 4 + (hasSeq and 1 or 0) + (hasPreset and 1 or 0)
         
         ApplyFontStyle(self.nameLabel)
@@ -545,7 +547,8 @@ function UI:RefreshBars()
     end
 
     -- Team Preset Button Visibility
-    if db.showPresets and db.showTeamPresetHandle and not db.breakUpBars then
+    local hasAnyTeamPreset = db.teamPresets and next(db.teamPresets) ~= nil
+    if db.showPresets and db.showTeamPresetHandle and not db.breakUpBars and hasAnyTeamPreset then
         self.masterFrame.teamPresetBtn:Show()
         if db.presetHandlesOnHover then self.masterFrame.teamPresetBtn:SetAlpha(0) else self.masterFrame.teamPresetBtn:SetAlpha(1) end
     else
