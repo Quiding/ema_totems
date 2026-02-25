@@ -170,7 +170,7 @@ function EMA_Totems:PresetsSettingsCreate()
     
     -- Save Preset UI
     self.settingsControlPresets.editBoxPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 300, left, movingTop, "New Preset Name")
-    self.settingsControlPresets.buttonSavePreset = EMAHelperSettings:CreateButton(self.settingsControlPresets, 80, left + 310, movingTop - 18, "Save", function()
+    self.settingsControlPresets.buttonSavePreset = EMAHelperSettings:CreateButton(self.settingsControlPresets, 80, left + 310, movingTop - 20, "Save", function()
         local name = self.settingsControlPresets.editBoxPresetName.editbox:GetText()
         if name and name ~= "" then
             self:SavePreset(name)
@@ -179,7 +179,7 @@ function EMA_Totems:PresetsSettingsCreate()
             self:Print("Error: Please enter a name for the preset.")
         end
     end)
-    movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight() - 10
+    movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight() - 15
     
     -- Preset List
     self.settingsControlPresets.presetList = {
@@ -200,14 +200,14 @@ function EMA_Totems:PresetsSettingsCreate()
         rowClickCallback = function(obj, rowNumber, columnNumber) self:SettingsPresetListRowClick(rowNumber, columnNumber) end
     }
     EMAHelperSettings:CreateScrollList(self.settingsControlPresets.presetList)
-    movingTop = movingTop - self.settingsControlPresets.presetList.listHeight - 20
+    movingTop = movingTop - self.settingsControlPresets.presetList.listHeight - 25
 
     -- Team Preset UI
     EMAHelperSettings:CreateHeading(self.settingsControlPresets, "Manage Team Presets", movingTop, false)
     movingTop = movingTop - headingHeight - 10
     
     self.settingsControlPresets.editBoxTeamPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 300, left, movingTop, "New Team Preset Name")
-    self.settingsControlPresets.buttonSaveTeamPreset = EMAHelperSettings:CreateButton(self.settingsControlPresets, 80, left + 310, movingTop - 18, "Save", function()
+    self.settingsControlPresets.buttonSaveTeamPreset = EMAHelperSettings:CreateButton(self.settingsControlPresets, 80, left + 310, movingTop - 20, "Save", function()
         local name = self.settingsControlPresets.editBoxTeamPresetName.editbox:GetText()
         if name and name ~= "" then
             self:SaveTeamPreset(name)
@@ -216,7 +216,7 @@ function EMA_Totems:PresetsSettingsCreate()
             self:Print("Error: Please enter a name for the team preset.")
         end
     end)
-    movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight() - 10
+    movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight() - 15
 
     self.settingsControlPresets.teamPresetList = {
         listFrameName = "EMATotemsTeamPresetsSettingsListFrame", 
@@ -236,11 +236,11 @@ function EMA_Totems:PresetsSettingsCreate()
         rowClickCallback = function(obj, rowNumber, columnNumber) self:SettingsTeamPresetListRowClick(rowNumber, columnNumber) end
     }
     EMAHelperSettings:CreateScrollList(self.settingsControlPresets.teamPresetList)
-    movingTop = movingTop - self.settingsControlPresets.teamPresetList.listHeight - 20
+    movingTop = movingTop - self.settingsControlPresets.teamPresetList.listHeight - 25
 
     -- Team Preset Editor
     EMAHelperSettings:CreateHeading(self.settingsControlPresets, "Team Preset Editor (Edit Offline/Online Members)", movingTop, false)
-    movingTop = movingTop - headingHeight - 10
+    movingTop = movingTop - headingHeight - 15
 
     self.settingsControlPresets.dropdownEditTeamPreset = EMAHelperSettings:CreateDropdown(self.settingsControlPresets, 200, left, movingTop, "Select Team Preset to Edit")
     self.settingsControlPresets.dropdownEditTeamPreset:SetCallback("OnValueChanged", function(w, e, v) 
@@ -250,11 +250,11 @@ function EMA_Totems:PresetsSettingsCreate()
     end)
     
     -- Icon Display and Change
-    self.settingsControlPresets.displayPresetIcon = EMAHelperSettings:Icon(self.settingsControlPresets, 42, 42, "Interface\\Icons\\INV_Misc_QuestionMark", left + 215, movingTop, "Preset Icon", function() 
+    self.settingsControlPresets.displayPresetIcon = EMAHelperSettings:Icon(self.settingsControlPresets, 42, 42, "Interface\\Icons\\INV_Misc_QuestionMark", left + 220, movingTop, "Preset Icon", function() 
         self:Print("To change the icon, drag a totem, spell, or item here, or type a name/ID in the box.")
     end, "Drag a spell or item here to change the preset icon.")
     
-    self.settingsControlPresets.editBoxPresetIcon = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 150, left + 275, movingTop, "Icon Name/ID")
+    self.settingsControlPresets.editBoxPresetIcon = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 150, left + 350, movingTop, "Icon Name/ID")
     self.settingsControlPresets.editBoxPresetIcon:SetCallback("OnEnterPressed", function(w, e, v)
         if not self.selectedTeamPresetToEdit then return end
         local val = v:trim()
