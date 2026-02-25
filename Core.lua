@@ -26,7 +26,7 @@ EMA_Totems.lastUsedTotems = {}
 local L = LibStub("AceLocale-3.0"):GetLocale("Core")
 local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
 
-EMA_Totems.parentDisplayName = "Class"
+EMA_Totems.parentDisplayName = "Totems"
 EMA_Totems.moduleDisplayName = "Totems"
 EMA_Totems.moduleIcon = "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga"
 EMA_Totems.moduleOrder = 80
@@ -435,10 +435,10 @@ function EMA_Totems:PLAYER_REGEN_ENABLED() ns.UI:UpdateMacros(); self:UPDATE_BIN
 
 function EMA_Totems:SettingsCreate()
     self.settingsControl = {}
-    self.settingsControlClass = {}
     local EMAHelperSettings = LibStub("EMAHelperSettings-1.0")
-    EMAHelperSettings:CreateSettings(self.settingsControlClass, "Class", "Class", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\TeamCore.tga", 5)
-    EMAHelperSettings:CreateSettings(self.settingsControl, "Totems", "Class", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga", 80)
+    
+    -- Create Totems as its own parent category
+    EMAHelperSettings:CreateSettings(self.settingsControl, "Totems", "Totems", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga", 80)
     
     local top, left = EMAHelperSettings:TopOfSettings(), EMAHelperSettings:LeftOfSettings()
     local headingHeight, headingWidth = EMAHelperSettings:HeadingHeight(), EMAHelperSettings:HeadingWidth(true)
