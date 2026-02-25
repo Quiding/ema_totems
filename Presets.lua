@@ -138,9 +138,13 @@ function EMA_Totems:PresetsSettingsCreate()
     -- Save Preset UI
     self.settingsControlPresets.editBoxPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 300, left, movingTop, "New Preset Name")
     self.settingsControlPresets.buttonSavePreset = EMAHelperSettings:CreateButton(self.settingsControlPresets, 120, left + 310, movingTop, "Save Current", function()
-        local name = self.settingsControlPresets.editBoxPresetName:GetText()
-        self:SavePreset(name)
-        self.settingsControlPresets.editBoxPresetName:SetText("")
+        local name = self.settingsControlPresets.editBoxPresetName.editbox:GetText()
+        if name and name ~= "" then
+            self:SavePreset(name)
+            self.settingsControlPresets.editBoxPresetName.editbox:SetText("")
+        else
+            self:Print("Error: Please enter a name for the preset.")
+        end
     end)
     movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight()
     
@@ -171,9 +175,13 @@ function EMA_Totems:PresetsSettingsCreate()
     
     self.settingsControlPresets.editBoxTeamPresetName = EMAHelperSettings:CreateEditBox(self.settingsControlPresets, 300, left, movingTop, "New Team Preset Name")
     self.settingsControlPresets.buttonSaveTeamPreset = EMAHelperSettings:CreateButton(self.settingsControlPresets, 120, left + 310, movingTop, "Save Current Team", function()
-        local name = self.settingsControlPresets.editBoxTeamPresetName:GetText()
-        self:SaveTeamPreset(name)
-        self.settingsControlPresets.editBoxTeamPresetName:SetText("")
+        local name = self.settingsControlPresets.editBoxTeamPresetName.editbox:GetText()
+        if name and name ~= "" then
+            self:SaveTeamPreset(name)
+            self.settingsControlPresets.editBoxTeamPresetName.editbox:SetText("")
+        else
+            self:Print("Error: Please enter a name for the team preset.")
+        end
     end)
     movingTop = movingTop - EMAHelperSettings:GetEditBoxHeight()
 
@@ -254,7 +262,7 @@ function EMA_Totems:PresetsSettingsCreate()
         m.totems.Air = self.settingsControlPresets.dropdownAir:GetValue()
         m.totems.Water = self.settingsControlPresets.dropdownWater:GetValue()
         m.totems.Earth = self.settingsControlPresets.dropdownEarth:GetValue()
-        m.sequence = self.settingsControlPresets.editBoxSequence:GetText()
+        m.sequence = self.settingsControlPresets.editBoxSequence.editbox:GetText()
         self:SettingsTeamMemberListScrollRefresh()
     end
 
