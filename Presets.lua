@@ -339,18 +339,23 @@ function EMA_Totems:SettingsTeamPresetListScrollRefresh()
     
     local presets = {}
     for name, _ in pairs(self.db.teamPresets) do
+        self:Print("DEBUG: Found team preset key in loop: " .. tostring(name))
         table.insert(presets, name)
     end
     table.sort(presets)
     
-    FauxScrollFrame_Update(self.settingsControlPresets.teamPresetList.listScrollFrame, #presets, self.settingsControlPresets.teamPresetList.rowsToDisplay, self.settingsControlPresets.teamPresetList.rowHeight)
-    local offset = FauxScrollFrame_GetOffset(self.settingsControlPresets.teamPresetList.listScrollFrame)
+    local list = self.settingsControlPresets.teamPresetList
+    FauxScrollFrame_Update(list.listScrollFrame, #presets, list.rowsToDisplay, list.rowHeight)
+    local offset = FauxScrollFrame_GetOffset(list.listScrollFrame)
     
-    for i = 1, self.settingsControlPresets.teamPresetList.rowsToDisplay do
-        local row = self.settingsControlPresets.teamPresetList.rows[i]
+    self:Print(string.format("DEBUG: Refreshing Team List. %d presets, offset %d", #presets, offset))
+    
+    for i = 1, list.rowsToDisplay do
+        local row = list.rows[i]
         local dataIndex = i + offset
         if dataIndex <= #presets then
             local name = presets[dataIndex]
+            self:Print(string.format("DEBUG: Row %d showing preset: %s", i, name))
             row.columns[1].textString:SetText(name)
             row.columns[2].textString:SetText("|cff00ff00[Apply]|r")
             row.columns[3].textString:SetText("|cffff0000[Delete]|r")
