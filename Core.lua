@@ -427,7 +427,7 @@ function EMA_Totems:SettingsCreate()
     self.settingsControl = {}
     self.settingsControlClass = {}
     local EMAHelperSettings = LibStub("EMAHelperSettings-1.0")
-    EMAHelperSettings:CreateSettings(self.settingsControlClass, "Class", "Class", function() end, "Interface\\AddOns\\EMA\\Media\\TeamCore.tga", 5)
+    EMAHelperSettings:CreateSettings(self.settingsControlClass, "Class", "Class", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\TeamCore.tga", 5)
     EMAHelperSettings:CreateSettings(self.settingsControl, "Totems", "Class", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga", 10)
     
     local top, left = EMAHelperSettings:TopOfSettings(), EMAHelperSettings:LeftOfSettings()
