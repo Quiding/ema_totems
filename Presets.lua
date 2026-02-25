@@ -260,18 +260,32 @@ function EMA_Totems:PresetsSettingsCreate()
         local val = v:trim()
         if val == "" then return end
         
-        local icon
-        if tonumber(val) then
-            icon = tonumber(val)
-        else
-            -- Try to get icon from spell name
-            icon = select(3, GetSpellInfo(val))
-            if not icon then
-                -- Try item name
-                icon = select(10, GetItemInfo(val))
+        local function FindIconRobust(search)
+            if tonumber(search) then return tonumber(search) end
+            local sLower = search:lower()
+            
+            -- 1. Try direct API (works for known/cached spells)
+            local name, _, icon = GetSpellInfo(search)
+            if name and name:lower() == sLower then return icon end
+            
+            -- 2. Search our internal totem lists (allows finding totems not known by current char)
+            for element, list in pairs(ns.totemLists) do
+                for _, id in ipairs(list) do
+                    local tName, _, tIcon = GetSpellInfo(id)
+                    if tName and tName:lower() == sLower then
+                        return tIcon
+                    end
+                end
             end
+            
+            -- 3. Try items
+            local _, _, _, _, _, _, _, _, _, iIcon = GetItemInfo(search)
+            if iIcon then return iIcon end
+            
+            return nil
         end
-        
+
+        local icon = FindIconRobust(val)
         if icon then
             self.db.teamPresets[self.selectedTeamPresetToEdit].icon = icon
             self:SettingsRefresh()
