@@ -68,19 +68,27 @@ function EMA_Totems:SaveTeamPreset(presetName)
         return 
     end
     
+    -- Debug: list all keys in selectedTotems
+    self:Print("DEBUG: Listing all characters in database:")
+    for k, _ in pairs(self.db.selectedTotems) do
+        self:Print("DEBUG: DB char key: " .. tostring(k))
+    end
+
     local teamData = {}
     local count = 0
     for index, characterName in EMAApi.TeamListOrdered() do
-        self:Print("DEBUG: Checking character: " .. characterName)
+        self:Print("DEBUG: Checking team member: " .. tostring(characterName))
         local totems = self.db.selectedTotems[characterName]
         local sequence = self.db.castSequences[characterName]
         if totems or sequence then
-            self:Print("DEBUG: Found data for: " .. characterName)
+            self:Print("DEBUG: Found data for: " .. tostring(characterName))
             teamData[characterName] = {
                 totems = totems and EMAUtilities:CopyTable(totems) or nil,
                 sequence = sequence
             }
             count = count + 1
+        else
+            self:Print("DEBUG: NO data for character: " .. tostring(characterName))
         end
     end
     
@@ -431,7 +439,17 @@ local function GetTotemListForDropdown(element)
 end
 
 function EMA_Totems:SettingsRefreshPresets()
-    if not self.settingsControlPresets then return end
+    if not self.settingsControlPresets then 
+        -- self:Print("DEBUG: settingsControlPresets is nil")
+        return 
+    end
+    
+    local presetCount = 0
+    for _ in pairs(self.db.presets) do presetCount = presetCount + 1 end
+    local teamPresetCount = 0
+    for _ in pairs(self.db.teamPresets) do teamPresetCount = teamPresetCount + 1 end
+    
+    self:Print(string.format("DEBUG: Refreshing Presets. Found %d single, %d team presets.", presetCount, teamPresetCount))
     
     self:SettingsPresetListScrollRefresh()
     self:SettingsTeamPresetListScrollRefresh()
@@ -446,9 +464,10 @@ function EMA_Totems:SettingsRefreshPresets()
     
     -- Update Member Editor
     if self.selectedMemberToEdit then
+        self:Print("DEBUG: Refreshing Editor for member: " .. tostring(self.selectedMemberToEdit))
         self.settingsControlPresets.labelEditMember:SetText("Editing Member: |cffffff00" .. Ambiguate(self.selectedMemberToEdit, "short"))
         
-        -- Populate dropdowns if not already done (or just always refresh list)
+        -- Populate dropdowns
         self.settingsControlPresets.dropdownFire:SetList(GetTotemListForDropdown("Fire"))
         self.settingsControlPresets.dropdownAir:SetList(GetTotemListForDropdown("Air"))
         self.settingsControlPresets.dropdownWater:SetList(GetTotemListForDropdown("Water"))
