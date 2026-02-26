@@ -407,13 +407,18 @@ function EMA_Totems:EMAOnSettingsReceived(characterName, settings)
         self.db.frameBorderColourG = settings.frameBorderColourG
         self.db.frameBorderColourB = settings.frameBorderColourB
         self.db.frameBorderColourA = settings.frameBorderColourA
-        self.db.selectedTotems = EMAUtilities:CopyTable( settings.selectedTotems )
-        self.db.castSequences = EMAUtilities:CopyTable( settings.castSequences )
-        self.db.teamBarsPos = EMAUtilities:CopyTable( settings.teamBarsPos )
+        self.db.selectedTotems = EMAUtilities:CopyTable( settings.selectedTotems or {} )
+        self.db.castSequences = EMAUtilities:CopyTable( settings.castSequences or {} )
         self.db.sequenceKeybind = settings.sequenceKeybind
+        self.db.presets = EMAUtilities:CopyTable( settings.presets or {} )
+        self.db.teamPresets = EMAUtilities:CopyTable( settings.teamPresets or {} )
+        self.db.showPresets = settings.showPresets
+        self.db.showIndividualPresetHandles = settings.showIndividualPresetHandles
+        self.db.showTeamPresetHandle = settings.showTeamPresetHandle
+        self.db.presetHandlesOnHover = settings.presetHandlesOnHover
+        self.db.presetButtonPosition = settings.presetButtonPosition
         self:SettingsRefresh()
         ns.UI:RefreshBars()
-        ns.UI:UpdatePositionFromDB()
         self:UPDATE_BINDINGS()
     end
 end
@@ -569,6 +574,7 @@ function EMA_Totems:SettingsCreate()
     self:EMAModuleInitialize(self.settingsControl.widgetSettings.frame)
     self:IndividualPresetsSettingsCreate()
     self:TeamPresetsSettingsCreate()
+    self:ImportExportSettingsCreate()
     self:SettingsRefresh()
     self.settingsControl.widgetSettings.content:SetHeight(-movingTop + 20)
     

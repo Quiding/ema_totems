@@ -517,3 +517,79 @@ function EMA_Totems:SettingsRefreshPresets()
         self:SettingsTeamMemberListScrollRefresh()
     end
 end
+
+-- -----------------------------------------------------------------------
+-- IMPORT / EXPORT
+-- -----------------------------------------------------------------------
+
+function EMA_Totems:ImportExportSettingsCreate()
+    self.settingsControlImportExport = {}
+    local EMAHelperSettings = LibStub("EMAHelperSettings-1.0")
+    
+    EMAHelperSettings:CreateSettings(self.settingsControlImportExport, "Import / Export", "Totems", function() self:PushSettingsToTeam() end, "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga", 16)
+    
+    local top, left = EMAHelperSettings:TopOfSettings(), EMAHelperSettings:LeftOfSettings()
+    local headingHeight, headingWidth = EMAHelperSettings:HeadingHeight(), EMAHelperSettings:HeadingWidth(true)
+    local movingTop = top
+    
+    EMAHelperSettings:CreateHeading(self.settingsControlImportExport, "Data Import / Export", movingTop, false)
+    movingTop = movingTop - headingHeight - 10
+
+    self.settingsControlImportExport.labelInfo = EMAHelperSettings:CreateLabel(self.settingsControlImportExport, headingWidth, left, movingTop, "Use the boxes below to export or import configuration strings.")
+    movingTop = movingTop - 30
+
+    -- 1. Totem Settings
+    EMAHelperSettings:CreateHeading(self.settingsControlImportExport, "1. Main Totem Settings", movingTop, false)
+    movingTop = movingTop - headingHeight - 5
+    self.settingsControlImportExport.editBoxSettings = EMAHelperSettings:CreateMultiEditBox(self.settingsControlImportExport, headingWidth, left, movingTop, "Main Settings Data (Layout, Scale, etc.)", 4)
+    movingTop = movingTop - 80
+    self.settingsControlImportExport.buttonExportSettings = EMAHelperSettings:CreateButton(self.settingsControlImportExport, headingWidth/2 - 5, left, movingTop, "Export Settings", function()
+        local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
+        local EMAUtilities = LibStub:GetLibrary("EbonyUtilities-1.0")
+        local settings = EMAUtilities:CopyTable(self.db)
+        -- Exclude presets
+        settings.presets = nil
+        settings.teamPresets = nil
+        -- Exclude character specific
+        settings.individualBarPositions = nil
+        settings.selectedTotems = nil
+        settings.castSequences = nil
+        settings.teamBarsPos = nil
+        settings.sequenceKeybind = nil
+        local str = LibAceSerializer:Serialize(settings)
+        self.settingsControlImportExport.editBoxSettings.editBox:SetText(str); self.settingsControlImportExport.editBoxSettings.editBox:HighlightText(); self.settingsControlImportExport.editBoxSettings.editBox:SetFocus()
+    end)
+    self.settingsControlImportExport.buttonImportSettings = EMAHelperSettings:CreateButton(self.settingsControlImportExport, headingWidth/2 - 5, left + headingWidth/2 + 5, movingTop, "Import Settings", function()
+        local str = self.settingsControlImportExport.editBoxSettings.editBox:GetText()
+        if str and str ~= "" then
+            local LibAceSerializer = LibStub:GetLibrary("AceSerializer-3.0")
+            local success, data = LibAceSerializer:Deserialize(str)
+            if success and type(data) == "table" then
+                -- Keep current character specific data
+                local p, tp = self.db.presets, self.db.teamPresets
+                local ibp = self.db.individualBarPositions
+                local st = self.db.selectedTotems
+                local cs = self.db.castSequences
+                local tbp = self.db.teamBarsPos
+                local sk = self.db.sequenceKeybind
+                
+                for k, v in pairs(data) do self.db[k] = v end
+                
+                -- Restore character specific data
+                self.db.presets, self.db.teamPresets = p, tp
+                self.db.individualBarPositions = ibp
+                self.db.selectedTotems = st
+                self.db.castSequences = cs
+                self.db.teamBarsPos = tbp
+                self.db.sequenceKeybind = sk
+                
+                self:Print("Main settings imported successfully!"); ns.UI:RefreshBars(); self:SettingsRefresh()
+            else self:Print("Error: Invalid settings import string.") end
+        end
+    end)
+    movingTop = movingTop - 40
+
+    self.settingsControlImportExport.widgetSettings.content:SetHeight(-movingTop + 20)
+end
+
+
