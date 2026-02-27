@@ -399,47 +399,59 @@ local function CreateTotemBar(shamanName, parent)
         
         -- Individual Preset Button
         if hasPreset then
-            self.presetBtn:Show(); self.presetBtn:SetSize(size, size); self.presetBtn:ClearAllPoints()
-            local pIdx = presetOnLeft and 0 or (numIcons - 1)
-            if layout == "Horizontal" then 
-                self.presetBtn:SetPoint("TOPLEFT", pIdx*(size + margin), -nameHeight)
-                if presetOnLeft and not db.presetHandlesOnHover then nameOffsetX = size + margin end
-            else 
-                self.presetBtn:SetPoint("TOPLEFT", 0, -pIdx*(size + margin) - nameHeight)
-                if presetOnLeft and not db.presetHandlesOnHover then nameOffsetY = -(size + margin) end
+            if not InCombatLockdown() then
+                self.presetBtn:Show(); self.presetBtn:SetSize(size, size); self.presetBtn:ClearAllPoints()
+                local pIdx = presetOnLeft and 0 or (numIcons - 1)
+                if layout == "Horizontal" then 
+                    self.presetBtn:SetPoint("TOPLEFT", pIdx*(size + margin), -nameHeight)
+                    if presetOnLeft and not db.presetHandlesOnHover then nameOffsetX = size + margin end
+                else 
+                    self.presetBtn:SetPoint("TOPLEFT", 0, -pIdx*(size + margin) - nameHeight)
+                    if presetOnLeft and not db.presetHandlesOnHover then nameOffsetY = -(size + margin) end
+                end
+                if presetOnLeft then iconIdx = 1 end
+                if db.presetHandlesOnHover then self.presetBtn:SetAlpha(0) else self.presetBtn:SetAlpha(1) end
+                -- Scale the 'P' text
+                self.presetBtn.text:SetFont(SharedMedia:Fetch("font", db.fontStyle or "Arial Narrow"), size * 0.7, "OUTLINE")
             end
-            if presetOnLeft then iconIdx = 1 end
-            if db.presetHandlesOnHover then self.presetBtn:SetAlpha(0) else self.presetBtn:SetAlpha(1) end
-            -- Scale the 'P' text
-            self.presetBtn.text:SetFont(SharedMedia:Fetch("font", db.fontStyle or "Arial Narrow"), size * 0.7, "OUTLINE")
-        else self.presetBtn:Hide() end
-
-        if layout == "Horizontal" then
-            self:SetSize(math.max(1, math.max(nameWidth + nameOffsetX, iconsBoundingSize)), size + nameHeight)
         else
-            self:SetSize(math.max(size, nameWidth), iconsBoundingSize + nameHeight)
+            if not InCombatLockdown() then self.presetBtn:Hide() end
+        end
+
+        if not InCombatLockdown() then
+            if layout == "Horizontal" then
+                self:SetSize(math.max(1, math.max(nameWidth + nameOffsetX, iconsBoundingSize)), size + nameHeight)
+            else
+                self:SetSize(math.max(size, nameWidth), iconsBoundingSize + nameHeight)
+            end
         end
 
         -- Handle
-        self.handle:SetShown(db.breakUpBars and not db.lockBars); self.handle:SetWidth(10); self.handle:SetHeight(self:GetHeight()); self.handle:ClearAllPoints(); self.handle:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, 0)
-        self.nameLabel:ClearAllPoints(); if showNames then self.nameLabel:Show(); self.nameLabel:SetJustifyH("LEFT"); self.nameLabel:SetPoint("TOPLEFT", nameOffsetX, nameOffsetY) else self.nameLabel:Hide() end
+        if not InCombatLockdown() then
+            self.handle:SetShown(db.breakUpBars and not db.lockBars); self.handle:SetWidth(10); self.handle:SetHeight(self:GetHeight()); self.handle:ClearAllPoints(); self.handle:SetPoint("TOPRIGHT", self, "TOPLEFT", 0, 0)
+            self.nameLabel:ClearAllPoints(); if showNames then self.nameLabel:Show(); self.nameLabel:SetJustifyH("LEFT"); self.nameLabel:SetPoint("TOPLEFT", nameOffsetX, nameOffsetY) else self.nameLabel:Hide() end
+        end
 
         local slots = {"Fire", "Air", "Water", "Earth"}
         for i, slot in ipairs(slots) do
             local b = self.buttons[slot]
-            b:SetSize(size, size); b:ClearAllPoints()
-            if layout == "Horizontal" then b:SetPoint("TOPLEFT", iconIdx*(size + margin), -nameHeight)
-            else b:SetPoint("TOPLEFT", 0, -iconIdx*(size + margin) - nameHeight) end
+            if not InCombatLockdown() then
+                b:SetSize(size, size); b:ClearAllPoints()
+                if layout == "Horizontal" then b:SetPoint("TOPLEFT", iconIdx*(size + margin), -nameHeight)
+                else b:SetPoint("TOPLEFT", 0, -iconIdx*(size + margin) - nameHeight) end
+            end
             iconIdx = iconIdx + 1
             ApplyFontStyle(b.timerText); b.timerText:SetFont(SharedMedia:Fetch("font", db.fontStyle), db.timerFontSize or 16, "OUTLINE")
         end
         
         if self.seqBtn then
-            if onlyTimers then self.seqBtn:Hide()
-            else
-                self.seqBtn:Show(); self.seqBtn:SetSize(size, size); self.seqBtn:ClearAllPoints()
-                if layout == "Horizontal" then self.seqBtn:SetPoint("TOPLEFT", iconIdx*(size + margin), -nameHeight)
-                else self.seqBtn:SetPoint("TOPLEFT", 0, -iconIdx*(size + margin) - nameHeight) end
+            if not InCombatLockdown() then
+                if onlyTimers then self.seqBtn:Hide()
+                else
+                    self.seqBtn:Show(); self.seqBtn:SetSize(size, size); self.seqBtn:ClearAllPoints()
+                    if layout == "Horizontal" then self.seqBtn:SetPoint("TOPLEFT", iconIdx*(size + margin), -nameHeight)
+                    else self.seqBtn:SetPoint("TOPLEFT", 0, -iconIdx*(size + margin) - nameHeight) end
+                end
             end
         end
         ApplySkin(self)
@@ -568,13 +580,15 @@ function UI:RefreshBars()
     
     local db = EMA_Totems.db
     if not db.showBars then
-        self.masterFrame:Hide()
+        if not InCombatLockdown() then self.masterFrame:Hide() end
         return
     end
 
-    self.masterFrame:Show()
-    self.masterFrame:SetScale(db.barScale or 1.0)
-    self.masterFrame:SetAlpha(db.barAlpha or 1.0)
+    if not InCombatLockdown() then
+        self.masterFrame:Show()
+        self.masterFrame:SetScale(db.barScale or 1.0)
+        self.masterFrame:SetAlpha(db.barAlpha or 1.0)
+    end
     
     local shamanList = {}
     
@@ -640,23 +654,27 @@ function UI:RefreshBars()
         end)
     end
 
-    if db.breakUpBars then
-        self.masterFrame:SetBackdrop(nil)
-        self.masterFrame.handle:Hide()
-    else
-        ApplySkin(self.masterFrame)
-        if not db.lockBars then
-            self.masterFrame.handle:Show()
-        else
+    if not InCombatLockdown() then
+        if db.breakUpBars then
+            self.masterFrame:SetBackdrop(nil)
             self.masterFrame.handle:Hide()
+        else
+            ApplySkin(self.masterFrame)
+            if not db.lockBars then
+                self.masterFrame.handle:Show()
+            else
+                self.masterFrame.handle:Hide()
+            end
         end
     end
 
     -- Team Preset Button Visibility and Parenting
     if db.showPresets and db.showTeamPresetHandle then
         local pSize = math.max(16, db.iconSize * 0.8)
-        self.masterFrame.teamPresetBtn:SetSize(pSize, pSize)
-        self.masterFrame.teamPresetBtn.text:SetFont(SharedMedia:Fetch("font", db.fontStyle or "Arial Narrow"), pSize * 0.6, "OUTLINE")
+        if not InCombatLockdown() then
+            self.masterFrame.teamPresetBtn:SetSize(pSize, pSize)
+            self.masterFrame.teamPresetBtn.text:SetFont(SharedMedia:Fetch("font", db.fontStyle or "Arial Narrow"), pSize * 0.6, "OUTLINE")
+        end
         
         if db.breakUpBars then
             -- Find first shaman bar that we are about to show
@@ -691,7 +709,9 @@ function UI:RefreshBars()
         self.masterFrame.teamPresetBtn:Hide()
     end
     
-    for name, bar in pairs(self.teamBars) do bar:Hide() end
+    if not InCombatLockdown() then
+        for name, bar in pairs(self.teamBars) do bar:Hide() end
+    end
 
     if not self.hasAnnounced and #shamanList > 0 then
         EMA_Totems:Print("Totem bars initialized ("..#shamanList.." Shaman found).")
@@ -712,81 +732,93 @@ function UI:RefreshBars()
         shamanCount = shamanCount + 1
         
         if not self.teamBars[characterName] then
-            self.teamBars[characterName] = CreateTotemBar(characterName, self.masterFrame)
+            if not InCombatLockdown() then
+                self.teamBars[characterName] = CreateTotemBar(characterName, self.masterFrame)
+            end
         end
         local bar = self.teamBars[characterName]
         
-        if db.breakUpBars then
-            local pos = db.individualBarPositions[charKey]
-            if not pos then
-                -- Initial position calculation: Stay where you were in the group
-                local point, relativeTo, relativePoint, x, y = bar:GetPoint()
-                if point and bar:GetLeft() and bar:GetTop() then
-                    -- Convert to screen coordinates
-                    local s = bar:GetEffectiveScale() / UIParent:GetEffectiveScale()
-                    local left = bar:GetLeft() * s
-                    local top = bar:GetTop() * s
-                    db.individualBarPositions[charKey] = { point = "TOPLEFT", relativePoint = "TOPLEFT", x = left, y = (top - UIParent:GetHeight()) }
-                    pos = db.individualBarPositions[charKey]
+        if bar then
+            if db.breakUpBars then
+                local pos = db.individualBarPositions[charKey]
+                if not pos then
+                    -- Initial position calculation: Stay where you were in the group
+                    local point, relativeTo, relativePoint, x, y = bar:GetPoint()
+                    if point and bar:GetLeft() and bar:GetTop() then
+                        -- Convert to screen coordinates
+                        local s = bar:GetEffectiveScale() / UIParent:GetEffectiveScale()
+                        local left = bar:GetLeft() * s
+                        local top = bar:GetTop() * s
+                        db.individualBarPositions[charKey] = { point = "TOPLEFT", relativePoint = "TOPLEFT", x = left, y = (top - UIParent:GetHeight()) }
+                        pos = db.individualBarPositions[charKey]
+                    end
+                end
+
+                if not InCombatLockdown() then
+                    bar:SetParent(UIParent)
+                    bar:SetMovable(true)
+                    bar:SetScale(db.barScale or 1.0)
+                    bar:SetAlpha(db.barAlpha or 1.0)
+                    bar:SetFrameStrata("MEDIUM")
+                    bar:ClearAllPoints()
+                    
+                    if pos then
+                        bar:SetPoint(pos.point, UIParent, pos.relativePoint, pos.x, pos.y)
+                    else
+                        bar:SetPoint("CENTER", UIParent, "CENTER", 100, 0)
+                    end
+                end
+            else
+                if not InCombatLockdown() then
+                    bar:SetParent(self.masterFrame)
+                    bar:SetMovable(false)
+                    bar:SetScale(1.0)
+                    bar:SetAlpha(1.0)
+                    bar:ClearAllPoints()
+                    bar:SetPoint("TOPLEFT", currentX, currentY)
                 end
             end
-
-            bar:SetParent(UIParent)
-            bar:SetMovable(true)
-            bar:SetScale(db.barScale or 1.0)
-            bar:SetAlpha(db.barAlpha or 1.0)
-            bar:SetFrameStrata("MEDIUM")
-            bar:ClearAllPoints()
             
-            if pos then
-                bar:SetPoint(pos.point, UIParent, pos.relativePoint, pos.x, pos.y)
-            else
-                bar:SetPoint("CENTER", UIParent, "CENTER", 100, 0)
+            bar:UpdateLayout()
+            if not InCombatLockdown() then bar:Show() end -- Ensure visibility AFTER parenting and positioning
+            
+            if not db.breakUpBars then
+                if db.barLayout == "Vertical" then
+                    currentX = currentX + bar:GetWidth() + barMargin
+                    maxTotalHeight = math.max(maxTotalHeight, bar:GetHeight())
+                else
+                    currentY = currentY - bar:GetHeight() - barMargin
+                    maxTotalWidth = math.max(maxTotalWidth, bar:GetWidth())
+                end
             end
-        else
-            bar:SetParent(self.masterFrame)
-            bar:SetMovable(false)
-            bar:SetScale(1.0)
-            bar:SetAlpha(1.0)
-            bar:ClearAllPoints()
-            bar:SetPoint("TOPLEFT", currentX, currentY)
-        end
-        
-        bar:UpdateLayout()
-        bar:Show() -- Ensure visibility AFTER parenting and positioning
-        
-        if not db.breakUpBars then
-            if db.barLayout == "Vertical" then
-                currentX = currentX + bar:GetWidth() + barMargin
-                maxTotalHeight = math.max(maxTotalHeight, bar:GetHeight())
-            else
-                currentY = currentY - bar:GetHeight() - barMargin
-                maxTotalWidth = math.max(maxTotalWidth, bar:GetWidth())
+            
+            if color then
+                bar.nameLabel:SetTextColor(color.r, color.g, color.b)
             end
+            self:UpdateBarIcons(bar)
         end
-        
-        if color then
-            bar.nameLabel:SetTextColor(color.r, color.g, color.b)
-        end
-        self:UpdateBarIcons(bar)
     end
     
     if not db.breakUpBars then
         if shamanCount > 0 then
-            if db.barLayout == "Vertical" then
-                self.masterFrame:SetWidth(currentX - barMargin)
-                self.masterFrame:SetHeight(maxTotalHeight)
-            else
-                self.masterFrame:SetHeight(math.abs(currentY) - barMargin)
-                self.masterFrame:SetWidth(maxTotalWidth)
+            if not InCombatLockdown() then
+                if db.barLayout == "Vertical" then
+                    self.masterFrame:SetWidth(currentX - barMargin)
+                    self.masterFrame:SetHeight(maxTotalHeight)
+                else
+                    self.masterFrame:SetHeight(math.abs(currentY) - barMargin)
+                    self.masterFrame:SetWidth(maxTotalWidth)
+                end
+                self.masterFrame.handle:SetHeight(self.masterFrame:GetHeight())
             end
-            self.masterFrame.handle:SetHeight(self.masterFrame:GetHeight())
         else
-            self.masterFrame:SetHeight(40)
-            self.masterFrame:SetWidth(200)
+            if not InCombatLockdown() then
+                self.masterFrame:SetHeight(40)
+                self.masterFrame:SetWidth(200)
+            end
         end
     else
-        self.masterFrame:Hide()
+        if not InCombatLockdown() then self.masterFrame:Hide() end
     end
     
     self:UpdateMacros()
