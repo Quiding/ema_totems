@@ -16,7 +16,7 @@ There is a small showcase of this + the other plugins mentioned here: https://ww
 
 *   **Unified Totem Management:** View and manage all your Shamans' totems in one compact, synchronized interface.
 *   **Custom Cast Sequences:** Customize the drop order (e.g., Air, Fire, Earth, Water) for each Shaman individually.
-*   **Direct Keybinding:** Assign your "Cast Totem Sequence" key directly in the settings menu for instant team casting.
+*   **Direct Keybinding:** Assign your "Set Cast Totem Sequence Keybind" directly in the settings menu for instant team casting.
 *   **Persistent Monitoring:** Tracks active totems and remaining durations across your entire team in real-time.
 *   **Spam-safe Macros:** Optional logic allowing you to rapidly click your totem key without accidentally restarting your cast sequence.
 *   **Global Addon Compatibility:** Built-in options to work seamlessly with OmniCC and ElvUI for timer displays.
@@ -29,7 +29,7 @@ There is a small showcase of this + the other plugins mentioned here: https://ww
 
 ## Usage
 
-*   Open the EMA configuration menu and navigate to **Class > Totems**.
+*   Open the EMA configuration menu and navigate to the **Totems** category.
 *   Select a Shaman from the **Totem Type Sequence** list to edit their specific order.
 *   Left-click any totem slot on the bar to select a specific totem.
 *   Use the **Set Cast Totem Sequence Keybind** button to assign your shortcut.
