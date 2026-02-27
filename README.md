@@ -31,3 +31,7 @@ Looking for other team-wide tracking? Check out [EMA Cooldowns](https://github.c
 *   Select a Shaman from the **Totem Type Sequence** list to edit their specific order.
 *   Right-click any totem slot on the bar to select a specific totem.
 *   Use the **Set Cast Totem Sequence Keybind** button to assign your shortcut.
+
+## Export example
+*  Main Totem settings ( Only Layout, scale and such since everything else is character name based not class )
+```^1^T^SbackgroundStyle^SNone^SpresetButtonPosition^SLeftAbove^SbarMargin^N0^SuseSpamMacro^B^SframeBackgroundColourG^N0.1^SframeBorderColourR^N0.5^StimerFontSize^N32^SshowPresets^B^StimerColorB^F7488338831343617^f-54^SborderStyle^SNone^SpresetHandlesOnHover^B^SbarAlpha^N1^SfontSize^N14^StimerColorG^N0^SshowTimers^b^SbarScale^N1.4^SshowIndividualPresetHandles^B^SbarOrder^SRoleAsc^SiconSize^N36^Sglobal^T^t^SfontStyle^SArial~`Narrow^SonlyTimers^b^SframeBorderColourA^N1^SlockBars^B^SframeBackgroundColourB^N0.1^StimerColorR^N1^SshowNames^b^SframeBackgroundColourA^N0.7^SframeBorderColourB^N0.5^SbarLayout^SHorizontal^SiconMargin^N1^SframeBackgroundColourR^N0.1^SshowBars^B^SshowTeamPresetHandle^B^SframeBorderColourG^N0.5^SbreakUpBars^b^t^^```
