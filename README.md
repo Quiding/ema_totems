@@ -31,7 +31,7 @@ There is a small showcase of this + the other plugins mentioned here: https://ww
 
 *   Open the EMA configuration menu and navigate to **Class > Totems**.
 *   Select a Shaman from the **Totem Type Sequence** list to edit their specific order.
-*   Right-click any totem slot on the bar to select a specific totem.
+*   Left-click any totem slot on the bar to select a specific totem.
 *   Use the **Set Cast Totem Sequence Keybind** button to assign your shortcut.
 
 ## Export example
