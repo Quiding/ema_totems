@@ -795,7 +795,7 @@ end
 function UI:UpdateBarIcons(bar)
     if not EMA_Totems.db or not bar then return end
     local shamanName = bar.shamanName
-    local shamanKey = Ambiguate(shamanName, "none")
+    local shamanKey = shamanName
     local settings = EMA_Totems.db.selectedTotems[shamanName]
     local lastUsed = EMA_Totems.lastUsedTotems[shamanKey]
     
@@ -881,8 +881,8 @@ function UI:UpdateTimers()
     local currentTime = GetTime()
 
     for _, bar in ipairs(barsToUpdate) do
-        local shamanName = Ambiguate(bar.shamanName, "none")
-        local isLocal = (shamanName == Ambiguate(EMA_Totems.characterName, "none"))
+        local shamanName = bar.shamanName
+        local isLocal = (shamanName == EMA_Totems.characterName)
         
         for slotName, index in pairs(totemMapping) do
             local b = bar.buttons[slotName]
