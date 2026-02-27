@@ -449,7 +449,7 @@ end
 function EMA_Totems:BeforeEMAProfileChanged() end
 function EMA_Totems:OnEMAProfileChanged() self:SettingsRefresh(); ns.UI:RefreshBars() end
 
-function EMA_Totems:PLAYER_REGEN_ENABLED() ns.UI:UpdateMacros(); self:UPDATE_BINDINGS() end
+function EMA_Totems:PLAYER_REGEN_ENABLED() ns.UI:UpdateMacros(); self:UPDATE_BINDINGS(); ns.UI:RefreshBars() end
 
 function EMA_Totems:SettingsCreate()
     self.settingsControl = {}
