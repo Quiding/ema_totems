@@ -31,9 +31,6 @@ EMA_Totems.moduleDisplayName = "Totems"
 EMA_Totems.moduleIcon = "Interface\\AddOns\\EMA\\Media\\SettingsIcon.tga"
 EMA_Totems.moduleOrder = 7
 
-_G["BINDING_HEADER_EMATOTEMS"] = "EMA Totems"
-_G["BINDING_NAME_EMATOTEMSSEQUENCE"] = "EMA: Cast Totem Sequence"
-
 ns.totemData = {
     ["Searing Totem"] = { element = "Fire", duration = 55 },
     ["Magma Totem"] = { element = "Fire", duration = 20 },
@@ -331,7 +328,7 @@ function EMA_Totems:UPDATE_BINDINGS()
     ClearOverrideBindings(self.keyBindingFrame)
     local directKey = self.db.sequenceKeybind
     if directKey and directKey ~= "" then SetOverrideBindingClick(self.keyBindingFrame, false, directKey, "EMATotemsSequenceButton") end
-    local n1, n2 = GetBindingKey("EMATOTEMSSEQUENCE")
+    local n1, n2 = GetBindingKey("CLICK EMATotemsSequenceButton:LeftButton")
     if n1 then SetOverrideBindingClick(self.keyBindingFrame, false, n1, "EMATotemsSequenceButton") end
     if n2 then SetOverrideBindingClick(self.keyBindingFrame, false, n2, "EMATotemsSequenceButton") end
 end
@@ -354,7 +351,7 @@ function EMA_Totems:COMBAT_LOG_EVENT_UNFILTERED()
         if EMAApi.IsCharacterInTeam(characterName) then
             local data = ns.totemData[spellName]
             if data then
-                local sender = Ambiguate(characterName, "none")
+                local sender = characterName
                 local icon = select(3, GetSpellInfo(spellID))
                 self.activeTotems[sender] = self.activeTotems[sender] or {}
                 self.activeTotems[sender][data.element] = { name = spellName, startTime = GetTime(), duration = data.duration, icon = icon }
@@ -362,15 +359,15 @@ function EMA_Totems:COMBAT_LOG_EVENT_UNFILTERED()
                 self.lastUsedTotems[sender][data.element] = { name = spellName, icon = icon }
                 if ns.UI then ns.UI:UpdateTimers() end
             elseif spellName == "Totemic Call" or spellName == "Totemic Recall" then
-                local sender = Ambiguate(characterName, "none")
+                local sender = characterName
                 self.activeTotems[sender] = {}
                 if ns.UI then ns.UI:UpdateTimers() end
             end
         end
     end
     if event == "UNIT_DIED" then
-        local unit = Ambiguate(destName, "none")
-        if self.activeTotems[unit] then self.activeTotems[unit] = {}; if ns.UI then ns.UI:UpdateTimers() end end
+        local characterName = EMAUtilities:AddRealmToNameIfMissing(destName)
+        if self.activeTotems[characterName] then self.activeTotems[characterName] = {}; if ns.UI then ns.UI:UpdateTimers() end end
     end
 end
 
@@ -407,8 +404,19 @@ function EMA_Totems:EMAOnSettingsReceived(characterName, settings)
         self.db.frameBorderColourG = settings.frameBorderColourG
         self.db.frameBorderColourB = settings.frameBorderColourB
         self.db.frameBorderColourA = settings.frameBorderColourA
-        self.db.selectedTotems = EMAUtilities:CopyTable( settings.selectedTotems or {} )
-        self.db.castSequences = EMAUtilities:CopyTable( settings.castSequences or {} )
+        
+        -- Merge selected totems and sequences instead of overwriting
+        if settings.selectedTotems then
+            for name, data in pairs(settings.selectedTotems) do
+                self.db.selectedTotems[name] = EMAUtilities:CopyTable(data)
+            end
+        end
+        if settings.castSequences then
+            for name, data in pairs(settings.castSequences) do
+                self.db.castSequences[name] = data
+            end
+        end
+
         self.db.sequenceKeybind = settings.sequenceKeybind
         self.db.presets = EMAUtilities:CopyTable( settings.presets or {} )
         self.db.teamPresets = EMAUtilities:CopyTable( settings.teamPresets or {} )
@@ -557,7 +565,7 @@ function EMA_Totems:SettingsCreate()
 
     EMAHelperSettings:CreateHeading(self.settingsControl, "Totem Type Sequence", movingTop, false)
     movingTop = movingTop - headingHeight
-    self.settingsControl.buttonSetKeybind = EMAHelperSettings:CreateButton(self.settingsControl, headingWidth, left, movingTop, "Set Cast Totem Sequence Keybind", function() self.waitingForKey = true; self.settingsControl.buttonSetKeybind:SetText("Press any key..."); self:SettingsRefresh() end)
+    self.settingsControl.buttonSetKeybind = EMAHelperSettings:CreateButton(self.settingsControl, headingWidth, left, movingTop, "Set Cast Totem Sequence Keybind", function() self.waitingForKey = true; self:SettingsRefresh() end)
     movingTop = movingTop - 30
     
     self.settingsControl.sequenceList = {
@@ -578,9 +586,68 @@ function EMA_Totems:SettingsCreate()
     self:SettingsRefresh()
     self.settingsControl.widgetSettings.content:SetHeight(-movingTop + 20)
     
+    if not self.bindingWarning then
+        self.bindingWarning = CreateFrame("Frame", nil, self.settingsControl.widgetSettings.frame, "BackdropTemplate")
+        self.bindingWarning:SetSize(300, 100)
+        self.bindingWarning:SetPoint("CENTER", UIParent, "CENTER")
+        self.bindingWarning:SetFrameStrata("TOOLTIP")
+        self.bindingWarning:SetBackdrop({
+            bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+            edgeFile = "Interface\\DialogFrame\\UI-DialogBox-Border",
+            tile = true, tileSize = 32, edgeSize = 32,
+            insets = { left = 8, right = 8, top = 8, bottom = 8 }
+        })
+        local text = self.bindingWarning:CreateFontString(nil, "OVERLAY", "GameFontNormalHuge")
+        text:SetPoint("CENTER", 0, 0)
+        text:SetText("|cffffff00Press any key to bind...\n\n|cffffffff(ESC to Cancel)")
+        self.bindingWarning:Hide()
+    end
+    
     local keyListener = CreateFrame("Frame", nil, self.settingsControl.widgetSettings.frame)
     keyListener:SetPropagateKeyboardInput(true)
-    keyListener:SetScript("OnKeyDown", function(sf, key) if self.waitingForKey then if key ~= "ESCAPE" then self.db.sequenceKeybind = key; self:UPDATE_BINDINGS(); self:Print("Keybind set to: " .. key) end; self.waitingForKey = false; self:SettingsRefresh() end end)
+    local ignoreKeys = {
+        ["LSHIFT"] = true, ["RSHIFT"] = true, ["LCTRL"] = true, ["RCTRL"] = true, ["LALT"] = true, ["RALT"] = true,
+        ["UNKNOWN"] = true,
+    }
+
+    keyListener:SetScript("OnKeyDown", function(sf, key) 
+        if self.waitingForKey then 
+            if key == "ESCAPE" then
+                self.waitingForKey = false
+                if self.bindingWarning then self.bindingWarning:Hide() end
+                self:SettingsRefresh()
+                return
+            end
+            
+            if ignoreKeys[key] then return end
+            
+            local keyPressed = key
+            if IsShiftKeyDown() then keyPressed = "SHIFT-"..keyPressed end
+            if IsControlKeyDown() then keyPressed = "CTRL-"..keyPressed end
+            if IsAltKeyDown() then keyPressed = "ALT-"..keyPressed end
+
+            self.db.sequenceKeybind = keyPressed
+            
+            -- Sync with Blizzard Keybindings
+            if not InCombatLockdown() then
+                -- Clear current bindings for this action first
+                local b1, b2 = GetBindingKey("CLICK EMATotemsSequenceButton:LeftButton")
+                if b1 then SetBinding(b1, nil) end
+                if b2 then SetBinding(b2, nil) end
+                
+                -- Set the new binding
+                SetBinding(keyPressed, "CLICK EMATotemsSequenceButton:LeftButton")
+                SaveBindings(GetCurrentBindingSet())
+            end
+            
+            self:UPDATE_BINDINGS()
+            self:Print("Keybind set to: " .. keyPressed) 
+            
+            self.waitingForKey = false
+            if self.bindingWarning then self.bindingWarning:Hide() end
+            self:SettingsRefresh() 
+        end 
+    end)
 end
 
 function EMA_Totems:GetSequenceForShaman(name) return self.db.castSequences[name] or "Fire, Air, Water, Earth" end
@@ -659,7 +726,13 @@ function EMA_Totems:SettingsRefresh()
         self.settingsControl.colorTimer:SetColor(db.timerColorR or 1, db.timerColorG or 1, db.timerColorB or 1, 1.0)
         self.settingsControl.colorTimer:SetDisabled(not showTimers)
         self.settingsControl.buttonSetKeybind:SetDisabled(onlyTimers)
-        self.settingsControl.buttonSetKeybind:SetText(db.sequenceKeybind ~= "" and "Keybind: " .. db.sequenceKeybind or "Set Cast Totem Sequence Keybind")
+        if self.waitingForKey then
+            self.settingsControl.buttonSetKeybind:SetText("|cffffff00Press any key to bind...|r")
+            if self.bindingWarning then self.bindingWarning:Show() end
+        else
+            self.settingsControl.buttonSetKeybind:SetText(db.sequenceKeybind ~= "" and "Keybind: " .. db.sequenceKeybind or "Set Cast Totem Sequence Keybind")
+            if self.bindingWarning then self.bindingWarning:Hide() end
+        end
         self.settingsControl.editBoxSelectedShaman:SetDisabled(onlyTimers)
         
         self.settingsControl.colorBackground:SetColor(db.frameBackgroundColourR or 1, db.frameBackgroundColourG or 1, db.frameBackgroundColourB or 0.1, db.frameBackgroundColourA or 0.7)
