@@ -376,34 +376,15 @@ function EMA_Totems:PushSettingsToTeam() self:EMASendSettings(); self:EMASendCom
 -- REQUIRED BY EMA CORE FOR SYNC
 function EMA_Totems:EMAOnSettingsReceived(characterName, settings)
     if characterName ~= self.characterName then
-        self.db.showBars = settings.showBars
-        self.db.onlyTimers = settings.onlyTimers
-        self.db.useSpamMacro = settings.useSpamMacro
-        self.db.barScale = settings.barScale
-        self.db.barAlpha = settings.barAlpha
-        self.db.lockBars = settings.lockBars
-        self.db.barOrder = settings.barOrder
-        self.db.showNames = settings.showNames
-        self.db.borderStyle = settings.borderStyle
-        self.db.backgroundStyle = settings.backgroundStyle
-        self.db.fontStyle = settings.fontStyle
-        self.db.fontSize = settings.fontSize
-        self.db.iconSize = settings.iconSize
-        self.db.iconMargin = settings.iconMargin
-        self.db.barMargin = settings.barMargin
-        self.db.showTimers = settings.showTimers
-        self.db.timerFontSize = settings.timerFontSize
-        self.db.timerColorR = settings.timerColorR
-        self.db.timerColorG = settings.timerColorG
-        self.db.timerColorB = settings.timerColorB
-        self.db.frameBackgroundColourR = settings.frameBackgroundColourR
-        self.db.frameBackgroundColourG = settings.frameBackgroundColourG
-        self.db.frameBackgroundColourB = settings.frameBackgroundColourB
-        self.db.frameBackgroundColourA = settings.frameBackgroundColourA
-        self.db.frameBorderColourR = settings.frameBorderColourR
-        self.db.frameBorderColourG = settings.frameBorderColourG
-        self.db.frameBorderColourB = settings.frameBorderColourB
-        self.db.frameBorderColourA = settings.frameBorderColourA
+        for k, v in pairs(settings) do
+            if k ~= "selectedTotems" and k ~= "castSequences" then
+                if type(v) == "table" then
+                    self.db[k] = EMAUtilities:CopyTable(v)
+                else
+                    self.db[k] = v
+                end
+            end
+        end
         
         -- Merge selected totems and sequences instead of overwriting
         if settings.selectedTotems then
@@ -417,17 +398,10 @@ function EMA_Totems:EMAOnSettingsReceived(characterName, settings)
             end
         end
 
-        self.db.sequenceKeybind = settings.sequenceKeybind
-        self.db.presets = EMAUtilities:CopyTable( settings.presets or {} )
-        self.db.teamPresets = EMAUtilities:CopyTable( settings.teamPresets or {} )
-        self.db.showPresets = settings.showPresets
-        self.db.showIndividualPresetHandles = settings.showIndividualPresetHandles
-        self.db.showTeamPresetHandle = settings.showTeamPresetHandle
-        self.db.presetHandlesOnHover = settings.presetHandlesOnHover
-        self.db.presetButtonPosition = settings.presetButtonPosition
         self:SettingsRefresh()
         ns.UI:RefreshBars()
         self:UPDATE_BINDINGS()
+        self:Print( L["SETTINGS_RECEIVED_FROM_A"]( characterName ) )
     end
 end
 
