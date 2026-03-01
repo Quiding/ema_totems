@@ -315,7 +315,7 @@ local function CreateTotemBar(shamanName, parent)
 
         b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
         b:SetScript("PostClick", function(self, button)
-            if button == "LeftButton" then
+            if button == "RightButton" then
                 ShowSelector(self, shamanName, slot)
             end
         end)
@@ -894,8 +894,8 @@ function UI:UpdateMacros()
         for slot, b in pairs(myBar.buttons) do
             local totem = s[slot]
             if totem then
-                b:SetAttribute("type2", "spell")
-                b:SetAttribute("spell2", GetName(totem, ""))
+                b:SetAttribute("type1", "spell")
+                b:SetAttribute("spell1", GetName(totem, ""))
             end
         end
     end
