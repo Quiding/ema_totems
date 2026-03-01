@@ -314,11 +314,12 @@ local function CreateTotemBar(shamanName, parent)
         b.cooldown = CreateFrame("Cooldown", nil, b, "CooldownFrameTemplate")
         b.cooldown:SetAllPoints(b.icon)
         b.cooldown:SetFrameLevel(b:GetFrameLevel() + 1)
+        b.cooldown:EnableMouse(false)
 
         b.timerText = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
         b.timerText:SetPoint("CENTER", 0, 0)
 
-        b:RegisterForClicks("AnyUp")
+        b:RegisterForClicks("AnyUp", "AnyDown")
         b:SetScript("PostClick", function(self, button)
             if button == "RightButton" then
                 ShowSelector(self, shamanName, slot)
@@ -329,9 +330,11 @@ local function CreateTotemBar(shamanName, parent)
             if not EMA_Totems.db then return end
             GameTooltip:SetOwner(self, "ANCHOR_TOP")
             
-            local active = EMA_Totems.activeTotems[Ambiguate(shamanName, "none")] and EMA_Totems.activeTotems[Ambiguate(shamanName, "none")][slot]
-            local last = EMA_Totems.lastUsedTotems[Ambiguate(shamanName, "none")] and EMA_Totems.lastUsedTotems[Ambiguate(shamanName, "none")][slot]
-            local selected = EMA_Totems.db.selectedTotems[shamanName] and EMA_Totems.db.selectedTotems[shamanName][slot]
+            local myShortName = Ambiguate(shamanName, "none"):lower()
+            local active, last, selected
+            for name, data in pairs(EMA_Totems.activeTotems) do if Ambiguate(name, "none"):lower() == myShortName then active = data[slot]; break end end
+            for name, data in pairs(EMA_Totems.lastUsedTotems) do if Ambiguate(name, "none"):lower() == myShortName then last = data[slot]; break end end
+            for name, data in pairs(EMA_Totems.db.selectedTotems) do if Ambiguate(name, "none"):lower() == myShortName then selected = data[slot]; break end end
             
             local displayVal = (active and active.name) or selected or (last and last.name) or "None"
             local name = displayVal
@@ -341,7 +344,7 @@ local function CreateTotemBar(shamanName, parent)
             
             GameTooltip:SetText(Ambiguate(shamanName, "short") .. " - " .. slot .. " (" .. name .. ")")
             if not EMA_Totems.db.onlyTimers then
-                if shamanName == EMA_Totems.characterName then
+                if shamanName == EMA_Totems.characterName or UnitIsUnit(Ambiguate(shamanName, "none"), "player") then
                     GameTooltip:AddLine("Left: Summon Totem", 1, 0.8, 0)
                 end
                 GameTooltip:AddLine("Right: Select Totem", 1, 1, 1)
@@ -866,12 +869,47 @@ end
 
 function UI:UpdateMacros()
     if not EMA_Totems.db or InCombatLockdown() then return end
+    
     local myName = EMA_Totems.characterName
-    local s = EMA_Totems.db.selectedTotems[myName]
+    local myShortName = Ambiguate(myName, "none"):lower()
+    local realPlayerName = UnitName("player"):lower()
+    
+    if EMA_Totems.db.onlyTimers then
+        for _, bar in pairs(self.teamBars) do
+            for _, b in pairs(bar.buttons) do
+                b:SetAttribute("*type1", nil)
+                b:SetAttribute("*macrotext1", nil)
+            end
+        end
+        return 
+    end
+
+    -- Thorough search for the player's bar
+    local myBar = self.teamBars[myName]
+    if not myBar then
+        for name, bar in pairs(self.teamBars) do
+            local barShortName = Ambiguate(name, "none"):lower()
+            if name:lower() == myName:lower() or 
+               barShortName == myShortName or
+               barShortName == realPlayerName or
+               (bar.shamanName and bar.shamanName:lower() == myName:lower()) or
+               (bar.shamanName and Ambiguate(bar.shamanName, "none"):lower() == myShortName) then
+                myBar = bar
+                break
+            end
+        end
+    end
+
+    if not myBar then return end
+
+    -- Defensive lookups for settings and data
+    local s, active, lastUsed
+    for name, data in pairs(EMA_Totems.db.selectedTotems) do if name:lower() == myName:lower() or Ambiguate(name, "none"):lower() == myShortName then s = data; break end end
+    for name, data in pairs(EMA_Totems.activeTotems) do if name:lower() == myName:lower() or Ambiguate(name, "none"):lower() == myShortName then active = data; break end end
+    for name, data in pairs(EMA_Totems.lastUsedTotems) do if name:lower() == myName:lower() or Ambiguate(name, "none"):lower() == myShortName then lastUsed = data; break end end
+
     local seq = EMA_Totems:GetSequenceForShaman(myName)
     
-    if not s then return end
-
     local function GetName(val, default)
         if not val or val == "" then return default end
         if type(val) == "number" then
@@ -881,35 +919,39 @@ function UI:UpdateMacros()
         return val
     end
 
+    -- Update Sequence Button
     local elements = {}
     for el in seq:gmatch("([^,%s]+)") do table.insert(elements, el:trim()) end
     local names = {}
     for _, el in ipairs(elements) do
-        local totem = s[el]
-        if totem then table.insert(names, GetName(totem, "")) end
+        local totem = (s and s[el]) or (active and active[el] and active[el].name) or (lastUsed and lastUsed[el] and lastUsed[el].name)
+        if totem then
+            local spellName = GetName(totem, "")
+            if spellName ~= "" then table.insert(names, spellName) end
+        end
+    end
+
+    if myBar.seqBtn and #names > 0 then
+        local reset = EMA_Totems.db.useSpamMacro and "3" or "10/combat"
+        local suffix = EMA_Totems.db.useSpamMacro and ", null" or ""
+        local macro = string.format("/castsequence reset=%s %s%s", reset, table.concat(names, ", "), suffix)
+        myBar.seqBtn:SetAttribute("type", "macro")
+        myBar.seqBtn:SetAttribute("macrotext", macro)
     end
     
-    local myBar = self.teamBars[myName]
-    if myBar then
-        if myBar.seqBtn and #names > 0 then
-            local reset = EMA_Totems.db.useSpamMacro and "3" or "10/combat"
-            local suffix = EMA_Totems.db.useSpamMacro and ", null" or ""
-            local macro = string.format("/castsequence reset=%s %s%s", reset, table.concat(names, ", "), suffix)
-            myBar.seqBtn:SetAttribute("type", "macro")
-            myBar.seqBtn:SetAttribute("macrotext", macro)
-        end
-        
-        for slot, b in pairs(myBar.buttons) do
-            local totem = s[slot]
-            if totem then
-                local spellName = GetName(totem, "")
-                if spellName ~= "" then
-                    b:SetAttribute("*type1", "macro")
-                    b:SetAttribute("*macrotext1", "/cast " .. spellName)
-                    -- Explicitly disable secure action on right click to allow selector script
-                    b:SetAttribute("*type2", nil)
-                end
+    -- Update Individual Totem Buttons
+    for slot, b in pairs(myBar.buttons) do
+        local totem = (s and s[slot]) or (active and active[slot] and active[slot].name) or (lastUsed and lastUsed[slot] and lastUsed[slot].name)
+        if totem then
+            local spellName = GetName(totem, "")
+            if spellName ~= "" then
+                b:SetAttribute("*type1", "macro")
+                b:SetAttribute("*macrotext1", "/cast " .. spellName)
+                b:SetAttribute("*type2", nil)
             end
+        else
+            b:SetAttribute("*type1", nil)
+            b:SetAttribute("*macrotext1", nil)
         end
     end
 end

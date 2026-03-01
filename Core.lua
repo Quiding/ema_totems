@@ -357,7 +357,10 @@ function EMA_Totems:COMBAT_LOG_EVENT_UNFILTERED()
                 self.activeTotems[sender][data.element] = { name = spellName, startTime = GetTime(), duration = data.duration, icon = icon }
                 self.lastUsedTotems[sender] = self.lastUsedTotems[sender] or {}
                 self.lastUsedTotems[sender][data.element] = { name = spellName, icon = icon }
-                if ns.UI then ns.UI:UpdateTimers() end
+                if ns.UI then 
+                    ns.UI:UpdateTimers() 
+                    if not InCombatLockdown() then ns.UI:UpdateMacros() end
+                end
             elseif spellName == "Totemic Call" or spellName == "Totemic Recall" then
                 local sender = characterName
                 self.activeTotems[sender] = {}
