@@ -71,11 +71,16 @@ selector:Hide()
 
 selector.timeSinceMouseOver = 0
 selector:SetScript("OnUpdate", function(self, elapsed)
-    if self:IsMouseOver() then
+    local isOver = self:IsMouseOver()
+    if not isOver and self.lastAnchor then
+        isOver = self.lastAnchor:IsMouseOver()
+    end
+    
+    if isOver then
         self.timeSinceMouseOver = 0
     else
         self.timeSinceMouseOver = self.timeSinceMouseOver + elapsed
-        if self.timeSinceMouseOver > 2 then
+        if self.timeSinceMouseOver > 3 then
             self:Hide()
             self.timeSinceMouseOver = 0
         end
@@ -313,7 +318,7 @@ local function CreateTotemBar(shamanName, parent)
         b.timerText = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
         b.timerText:SetPoint("CENTER", 0, 0)
 
-        b:RegisterForClicks("AnyUp", "AnyDown")
+        b:RegisterForClicks("AnyUp")
         b:SetScript("PostClick", function(self, button)
             if button == "RightButton" then
                 ShowSelector(self, shamanName, slot)
