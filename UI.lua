@@ -313,9 +313,9 @@ local function CreateTotemBar(shamanName, parent)
         b.timerText = b:CreateFontString(nil, "OVERLAY", "GameFontHighlightLarge")
         b.timerText:SetPoint("CENTER", 0, 0)
 
-        b:RegisterForClicks("LeftButtonUp", "RightButtonUp")
+        b:RegisterForClicks("AnyUp", "AnyDown")
         b:SetScript("PostClick", function(self, button)
-            if button == "LeftButton" then
+            if button == "RightButton" then
                 ShowSelector(self, shamanName, slot)
             end
         end)
@@ -336,6 +336,9 @@ local function CreateTotemBar(shamanName, parent)
             
             GameTooltip:SetText(Ambiguate(shamanName, "short") .. " - " .. slot .. " (" .. name .. ")")
             if not EMA_Totems.db.onlyTimers then
+                if shamanName == EMA_Totems.characterName then
+                    GameTooltip:AddLine("Left: Summon Totem", 1, 0.8, 0)
+                end
                 GameTooltip:AddLine("Right: Select Totem", 1, 1, 1)
             end
             GameTooltip:Show()
@@ -894,8 +897,13 @@ function UI:UpdateMacros()
         for slot, b in pairs(myBar.buttons) do
             local totem = s[slot]
             if totem then
-                b:SetAttribute("type2", "spell")
-                b:SetAttribute("spell2", GetName(totem, ""))
+                local spellName = GetName(totem, "")
+                if spellName ~= "" then
+                    b:SetAttribute("*type1", "macro")
+                    b:SetAttribute("*macrotext1", "/cast " .. spellName)
+                    -- Explicitly disable secure action on right click to allow selector script
+                    b:SetAttribute("*type2", nil)
+                end
             end
         end
     end
