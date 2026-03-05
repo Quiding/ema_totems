@@ -320,8 +320,8 @@ local function CreateTotemBar(shamanName, parent)
         b.timerText:SetPoint("CENTER", 0, 0)
 
         b:RegisterForClicks("AnyUp", "AnyDown")
-        b:SetScript("PostClick", function(self, button)
-            if button == "RightButton" then
+        b:SetScript("PostClick", function(self, button, down)
+            if button == "RightButton" and not down then
                 ShowSelector(self, shamanName, slot)
             end
         end)
